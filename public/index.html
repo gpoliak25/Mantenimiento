@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mantenimiento de Flota</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='5' width='26' height='19' rx='4' fill='%23f2a900'/%3E%3Crect x='6' y='8' width='20' height='7' rx='1.5' fill='%2310242b'/%3E%3Ccircle cx='10' cy='26' r='3' fill='%2310242b'/%3E%3Ccircle cx='22' cy='26' r='3' fill='%2310242b'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="side">
+      <a class="brand" href="#/">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="5" width="26" height="19" rx="4" fill="#f2a900"/><rect x="6" y="8" width="20" height="7" rx="1.5" fill="#10242b"/><circle cx="10" cy="26" r="3" fill="#f2a900"/><circle cx="22" cy="26" r="3" fill="#f2a900"/></svg>
+        <span><b>Flota</b><small>Gestión de mantenimiento</small></span>
+      </a>
+      <nav id="nav">
+        <div class="nav-group">Operación</div>
+        <a href="#/" data-route=""><i>◧</i>Tablero</a>
+        <a href="#/flota" data-route="flota"><i>▤</i>Flota</a>
+        <a href="#/ordenes" data-route="ordenes"><i>⚒</i>Órdenes de trabajo</a>
+        <a href="#/inspeccion" data-route="inspeccion"><i>✓</i>Inspección diaria</a>
+        <div class="nav-group">Mantenimiento</div>
+        <a href="#/preventivo" data-route="preventivo"><i>◷</i>Plan preventivo</a>
+        <a href="#/telemetria" data-route="telemetria"><i>∿</i>Telemetría IoT</a>
+        <a href="#/predictivo" data-route="predictivo"><i>◭</i>Predictivo</a>
+        <a href="#/repuestos" data-route="repuestos"><i>▦</i>Repuestos</a>
+        <div class="nav-group">Gestión</div>
+        <a href="#/kpis" data-route="kpis"><i>▥</i>Indicadores</a>
+        <a href="#/integracion" data-route="integracion"><i>⇄</i>Integración JDE</a>
+      </nav>
+      <div class="side-foot">
+        <div id="jdePill" class="jde-pill">JDE E1 9.2 · …</div>
+        <button id="themeBtn" class="ghost small" type="button">Tema</button>
+      </div>
+    </aside>
+    <main>
+      <header class="top">
+        <div>
+          <div id="crumb" class="crumb"></div>
+          <h1 id="title">Tablero</h1>
+        </div>
+        <div class="top-r" id="topActions"></div>
+      </header>
+      <section id="view" class="view"></section>
+    </main>
+  </div>
+  <div id="tt" class="tt" role="tooltip"></div>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

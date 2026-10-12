@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MVP Mantenimiento de Flota</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f4f5f3; --surface: #fcfcfb; --surface-2: #f0efec; --ink: #0b0b0b; --ink-2: #52514e; --muted: #7a7873;
+  --grid: #e1e0d9; --border: rgba(11,11,11,.10); --accent: #f2a900; --brand: #10242b; --link: #1c5cab;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s7: #4a3aa7; --info-bg: #e3eefb; --good-bg: #e6f4e6; --good: #006300; --warn-bg: #fdf3dc; --crit-bg: #fbe7e7; --crit: #b02a2a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark; --page: #0d0d0d; --surface: #1a1a19; --surface-2: #232321; --ink: #fff; --ink-2: #c3c2b7; --muted: #8f8d87;
+    --grid: #2c2c2a; --border: rgba(255,255,255,.10); --link: #6da7ec; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s7: #9085e9;
+    --info-bg: #13263d; --good-bg: #13301a; --good: #0ca30c; --warn-bg: #3a2e0e; --crit-bg: #3b1616; --crit: #ff8a8a;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 15px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--page); color: var(--ink); }
+a { color: var(--link); }
+.wrap { display: grid; grid-template-columns: 250px minmax(0, 1fr); max-width: 1280px; margin: 0 auto; gap: 40px; padding: 0 24px; }
+nav.toc { position: sticky; top: 0; align-self: start; padding: 32px 0; max-height: 100vh; overflow-y: auto; font-size: 13.5px; }
+nav.toc b { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+nav.toc a { display: block; color: var(--ink-2); text-decoration: none; padding: 4px 0 4px 10px; border-left: 2px solid var(--grid); }
+nav.toc a:hover { color: var(--ink); border-left-color: var(--accent); }
+main { padding: 32px 0 80px; min-width: 0; }
+header.cover { background: var(--brand); color: #fff; border-radius: 14px; padding: 40px 40px 36px; margin-bottom: 36px; }
+header.cover .kicker { color: var(--accent); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; }
+header.cover h1 { font-size: 34px; line-height: 1.15; margin: 10px 0 12px; letter-spacing: -0.02em; }
+header.cover p { color: #c9d6d9; margin: 0; max-width: 760px; font-size: 16px; }
+header.cover .meta { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 22px; font-size: 13px; color: #9fb4b9; }
+header.cover .meta b { color: #fff; font-weight: 600; }
+.steps4 { display: flex; gap: 8px; margin-top: 22px; flex-wrap: wrap; }
+.steps4 span { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); padding: 5px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600; letter-spacing: .05em; }
+.steps4 span:last-child { background: var(--accent); color: var(--brand); border-color: var(--accent); }
+section { margin: 0 0 44px; scroll-margin-top: 16px; }
+h2 { font-size: 23px; letter-spacing: -0.01em; margin: 0 0 6px; display: flex; gap: 10px; align-items: baseline; }
+h2 .n { color: var(--accent); font-size: 15px; font-weight: 700; min-width: 26px; }
+h2 + .lead { color: var(--ink-2); margin: 0 0 18px; }
+h3 { font-size: 16px; margin: 22px 0 8px; }
+p { margin: 0 0 12px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.card h4 { margin: 0 0 6px; font-size: 14.5px; }
+.card p, .card li { font-size: 13.5px; color: var(--ink-2); }
+.card ul { margin: 6px 0 0; padding-left: 18px; }
+.stat .v { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
+.stat .l { font-size: 13px; color: var(--ink-2); }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th { text-align: left; font-size: 12px; color: var(--ink-2); font-weight: 600; padding: 9px 10px; border-bottom: 1px solid var(--grid); background: var(--surface-2); }
+td { padding: 9px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+.tw { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12.5px; }
+.b { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); white-space: nowrap; }
+.b.in { background: var(--info-bg); color: var(--link); }
+.b.out { background: var(--good-bg); color: var(--good); }
+.callout { background: var(--surface-2); border-radius: 10px; padding: 14px 16px; font-size: 14px; color: var(--ink-2); margin: 14px 0; }
+.callout b { color: var(--ink); }
+figure { margin: 0; }
+figure svg { width: 100%; height: auto; display: block; }
+figure figcaption { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+.svg-t { fill: var(--ink); font-size: 13px; font-family: inherit; }
+.svg-s { fill: var(--ink-2); font-size: 11.5px; font-family: inherit; }
+.svg-box { fill: var(--surface); stroke: var(--border); }
+.svg-box2 { fill: var(--surface-2); stroke: var(--border); }
+.svg-hl { fill: var(--info-bg); stroke: var(--border); }
+.svg-ln { stroke: var(--ink-2); stroke-width: 1.5; fill: none; }
+.roadmap { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.roadmap .card .when { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; color: var(--accent); text-transform: uppercase; }
+.check li { list-style: none; position: relative; padding-left: 4px; }
+.check { padding-left: 18px; }
+.check li::before { content: "✓"; position: absolute; left: -16px; color: var(--good); font-weight: 700; }
+footer { color: var(--muted); font-size: 12.5px; border-top: 1px solid var(--grid); padding-top: 16px; }
+@media (max-width: 960px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); padding: 0 16px; }
+  nav.toc { display: none; }
+  .g3, .g4, .roadmap { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  header.cover { padding: 28px 22px; }
+  header.cover h1 { font-size: 26px; }
+}
+@media (max-width: 600px) { .g2, .g3, .g4, .roadmap { grid-template-columns: minmax(0, 1fr); } }
+@media print {
+  nav.toc { display: none; } .wrap { display: block; max-width: none; padding: 0; } body { background: #fff; }
+  section { break-inside: avoid-page; } header.cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="toc" aria-label="Contenido">
+  <b>Contenido</b>
+  <a href="#resumen">1. Resumen ejecutivo</a>
+  <a href="#problema">2. Problema y objetivos</a>
+  <a href="#alcance">3. Alcance funcional</a>
+  <a href="#usuarios">4. Usuarios y roles</a>
+  <a href="#flujos">5. Procesos clave</a>
+  <a href="#arquitectura">6. Arquitectura</a>
+  <a href="#jde">7. Integración con JDE 9.2</a>
+  <a href="#datos">8. Modelo de datos</a>
+  <a href="#kpis">9. Indicadores</a>
+  <a href="#predictivo">10. Modelo predictivo</a>
+  <a href="#implementacion">11. Plan de implementación</a>
+  <a href="#riesgos">12. Riesgos y mitigaciones</a>
+  <a href="#ejecutar">13. Cómo ejecutar el MVP</a>
+</nav>
+<main>
+<header class="cover">
+  <div class="kicker">Gestión de mantenimiento · Flota de colectivos</div>
+  <h1>MVP: sistema de mantenimiento de flota integrado con JD Edwards EnterpriseOne 9.2</h1>
+  <p>De la reparación reactiva a la gestión por datos: unidades disponibles, seguras y al menor costo total, con cada evento de mantenimiento reflejado en el ERP.</p>
+  <div class="steps4"><span>CORREGIR</span><span>PREVENIR</span><span>PREDECIR</span><span>OPTIMIZAR</span></div>
+  <div class="meta"><span>Versión <b>0.2 · MVP</b></span><span>Fecha <b>octubre 2026</b></span><span>ERP <b>JDE E1 9.2 · AIS / Orchestrator</b></span><span>Entorno <b>localhost</b></span></div>
+</header>
+
+<section id="resumen">
+  <h2><span class="n">1</span>Resumen ejecutivo</h2>
+  <p class="lead">El MVP lleva a un sistema funcionando lo que propone la presentación <i>Mantenimiento de flota de transporte público</i>.</p>
+  <div class="grid g4">
+    <div class="card stat"><div class="v">9</div><div class="l">módulos: tablero, flota, OTs, inspección, preventivo, IoT, predictivo, repuestos, KPIs</div></div>
+    <div class="card stat"><div class="v">14</div><div class="l">orquestaciones JDE (AIS) que cubren equipos, OTs, inventario, compras y costeo</div></div>
+    <div class="card stat"><div class="v">7</div><div class="l">KPIs de la presentación calculados de forma automática, con comparación entre períodos</div></div>
+    <div class="card stat"><div class="v">0</div><div class="l">dependencias externas: corre en <code>localhost</code> con Node.js</div></div>
+  </div>
+  <div class="callout"><b>Integración total con el ERP.</b> Todo lo que hace el taller y afecta al ERP llega a JDE: alta y avance de OTs, entrega de repuestos, horas de mano de obra, cierre y costeo contable, estado de las unidades, lecturas de odómetro, programación preventiva y requisiciones de compra. En sentido inverso, JDE es la fuente de los maestros de equipos y repuestos, del stock y del estado de las compras. Si JDE no está disponible, el taller sigue trabajando y las operaciones se envían en orden cuando el ERP vuelve.</div>
+</section>
+
+<section id="problema">
+  <h2><span class="n">2</span>Problema y objetivos</h2>
+  <p class="lead">Una falla en ruta deja la unidad detenida, afecta el servicio y la seguridad de los pasajeros, y cuesta de 3 a 9 veces más que una reparación planificada.</p>
+  <div class="grid g2">
+    <div class="card"><h4>Situación que resuelve</h4><ul>
+      <li>La información de cada unidad está dispersa: historial, km, costos y fallas.</li>
+      <li>Los preventivos se hacen fuera de plazo y con tareas incompletas (hallazgos de auditorías de PVTA y OCTA).</li>
+      <li>El taller y el ERP no están conectados: hay doble carga y los costos no se pueden atribuir a cada unidad.</li>
+      <li>No hay línea de base de disponibilidad, MDBF ni MTTR para comprobar si hay mejora.</li></ul></div>
+    <div class="card"><h4>Objetivos del MVP</h4><ul class="check">
+      <li>Un registro único por unidad, sincronizado con JDE</li>
+      <li>Flujo del taller estandarizado en 6 etapas, con controles</li>
+      <li>Plan preventivo por niveles con tolerancia de ±10%</li>
+      <li>Ciclo IoT completo, de la alerta a la OT en JDE</li>
+      <li>KPIs automáticos y modelo de riesgo por unidad</li></ul></div>
+  </div>
+</section>
+
+<section id="alcance">
+  <h2><span class="n">3</span>Alcance funcional</h2>
+  <p class="lead">Cada módulo del MVP corresponde a un tema de la presentación.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Módulo</th><th>Qué hace</th><th>Base en la presentación</th></tr></thead>
+    <tbody>
+      <tr><td><b>Tablero</b></td><td>Disponibilidad, MDBF, MTTR, cumplimiento, costo por km, taller en curso, alertas, OTs abiertas y estado de JDE</td><td>Medición · KPIs</td></tr>
+      <tr><td><b>Flota (ficha de unidad)</b></td><td>Datos de JDE (F1201), odómetro, plan por niveles, telemetría en vivo, historial de OTs y costo por tipo</td><td>Sistema de gestión del mantenimiento</td></tr>
+      <tr><td><b>Órdenes de trabajo</b></td><td>Kanban en 6 etapas. Las OTs se generan desde el conductor, una inspección, un sensor o el plan. Repuestos, horas, causa raíz y costeo</td><td>Flujo de trabajo del taller</td></tr>
+      <tr><td><b>Inspección diaria</b></td><td>Checklist del conductor (mantenimiento autónomo) y verificación de alarmas y emergencias (detectivo). Un defecto de seguridad deja la unidad no apta</td><td>7 tipos de mantenimiento · nivel Diaria</td></tr>
+      <tr><td><b>Plan preventivo</b></td><td>Niveles A, B, C y Mayor por km o tiempo, con tolerancia de ±10%. Un nivel superior reinicia los inferiores. Kits de repuestos y generación masiva de OTs</td><td>Plan por niveles · intervalos</td></tr>
+      <tr><td><b>Telemetría IoT</b></td><td>12 variables (ECU J1939, motor, frenos, aire, suspensión, neumáticos, puertas, baterías, batería de tracción) con umbrales, DTC y tendencia</td><td>Qué medir con sensores · arquitectura IoT</td></tr>
+      <tr><td><b>Predictivo</b></td><td>Ranking de riesgo, probabilidad de falla a 30 días, vida útil restante de las pastillas, MDBF por sistema y fallas recurrentes (proactivo)</td><td>Ciencia de datos e IA · caso MTA</td></tr>
+      <tr><td><b>Repuestos</b></td><td>Stock desde JDE, criticidad A/B/C, stock de seguridad, rotables, requisiciones automáticas y seguimiento de compras</td><td>Gestión de repuestos</td></tr>
+      <tr><td><b>Indicadores</b></td><td>7 KPIs con fórmula, tendencia mensual y metas de MDBF de agencias de referencia</td><td>KPIs · metas de distancia entre fallas</td></tr>
+      <tr><td><b>Integración JDE</b></td><td>Conexión AIS, cola de salida, registro de llamadas, mapa de integración y pruebas de resiliencia</td><td>Inventario y compras integrados con el ERP</td></tr>
+    </tbody></table></div>
+  <h3>Tipos de mantenimiento soportados</h3>
+  <p>Cada OT lleva uno de los 7 tipos de la presentación, mapeado al tipo de OT de JDE (<code>F4801.TYPS</code>, UDC 00/TY): Preventivo <code>1</code> · Correctivo <code>2</code> · Predictivo <code>3</code> · Proactivo <code>4</code> · Basado en condición <code>5</code> · Detectivo <code>6</code> · Autónomo <code>7</code>. Así el costo por tipo se puede analizar tanto en el CMMS como en JDE.</p>
+</section>
+
+<section id="usuarios">
+  <h2><span class="n">4</span>Usuarios y roles</h2>
+  <p class="lead">Quién usa el sistema y para qué.</p>
+  <div class="grid g3">
+    <div class="card"><h4>Conductor</h4><p>Hace la inspección diaria antes de salir y reporta fallas en ruta.</p></div>
+    <div class="card"><h4>Jefe de taller</h4><p>Prioriza la cola de OTs, asigna técnicos y valida el control y cierre.</p></div>
+    <div class="card"><h4>Técnico</h4><p>Registra el diagnóstico, las horas y la causa raíz, y ejecuta según el procedimiento del fabricante.</p></div>
+    <div class="card"><h4>Pañol / almacén</h4><p>Entrega repuestos contra la OT y sigue los faltantes y las requisiciones.</p></div>
+    <div class="card"><h4>Planificación de mantenimiento</h4><p>Gestiona el plan por niveles, los kits y los análisis de causa raíz.</p></div>
+    <div class="card"><h4>Gerencia</h4><p>Consulta KPIs, costo por km, riesgo de la flota y avance de la hoja de ruta.</p></div>
+  </div>
+  <p class="callout">En el MVP todos los roles comparten una única sesión. La autenticación y los permisos por rol están previstos para la versión de producción (sección 11).</p>
+</section>
+
+<section id="flujos">
+  <h2><span class="n">5</span>Procesos clave</h2>
+  <h3>5.1 Flujo del taller y su reflejo en JDE</h3>
+  <figure class="card">
+    <svg viewBox="0 0 900 190" role="img" aria-label="Flujo del taller en seis etapas">
+      <defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--ink-2)"/></marker></defs>
+      <g>
+        <rect class="svg-box2" x="5" y="20" width="125" height="78" rx="10"/><text class="svg-t" x="67" y="48" text-anchor="middle" font-weight="650">1 · Detección</text><text class="svg-s" x="67" y="68" text-anchor="middle">conductor · inspección</text><text class="svg-s" x="67" y="84" text-anchor="middle">sensor · plan</text>
+        <rect class="svg-box" x="155" y="20" width="125" height="78" rx="10"/><text class="svg-t" x="217" y="48" text-anchor="middle" font-weight="650">2 · OT</text><text class="svg-s" x="217" y="68" text-anchor="middle">F4801 · SRST 10</text>
+        <rect class="svg-box" x="305" y="20" width="125" height="78" rx="10"/><text class="svg-t" x="367" y="48" text-anchor="middle" font-weight="650">3 · Diagnóstico</text><text class="svg-s" x="367" y="68" text-anchor="middle">SRST 20 · EQST IR</text>
+        <rect class="svg-box" x="455" y="20" width="125" height="78" rx="10"/><text class="svg-t" x="517" y="48" text-anchor="middle" font-weight="650">4 · Repuestos</text><text class="svg-s" x="517" y="68" text-anchor="middle">SRST 30 · F3111</text><text class="svg-s" x="517" y="84" text-anchor="middle">F4111 · F4311</text>
+        <rect class="svg-box" x="605" y="20" width="125" height="78" rx="10"/><text class="svg-t" x="667" y="48" text-anchor="middle" font-weight="650">5 · Reparación</text><text class="svg-s" x="667" y="68" text-anchor="middle">SRST 40 · F31122</text>
+        <rect class="svg-hl" x="755" y="20" width="140" height="78" rx="10"/><text class="svg-t" x="825" y="48" text-anchor="middle" font-weight="650">6 · Control y cierre</text><text class="svg-s" x="825" y="68" text-anchor="middle">SRST 80 → 99</text><text class="svg-s" x="825" y="84" text-anchor="middle">F0911 · F1207 · EQST AV</text>
+        <path class="svg-ln" d="M130,59H153" marker-end="url(#a1)"/><path class="svg-ln" d="M280,59H303" marker-end="url(#a1)"/><path class="svg-ln" d="M430,59H453" marker-end="url(#a1)"/><path class="svg-ln" d="M580,59H603" marker-end="url(#a1)"/><path class="svg-ln" d="M730,59H753" marker-end="url(#a1)"/>
+        <path class="svg-ln" d="M825,100V150H67V102" stroke-dasharray="5 4" marker-end="url(#a1)"/>
+        <text class="svg-s" x="446" y="170" text-anchor="middle">Cierre del ciclo: la causa raíz de las fallas no planificadas actualiza el plan preventivo</text>
+      </g>
+    </svg>
+    <figcaption>Controles del MVP: el diagnóstico es obligatorio para pasar a repuestos, no se avanza a reparación con repuestos sin entregar, y un correctivo no se cierra sin causa raíz.</figcaption>
+  </figure>
+
+  <h3>5.2 Ciclo predictivo: de la alerta a la OT en JDE</h3>
+  <figure class="card">
+    <svg viewBox="0 0 900 120" role="img" aria-label="Ciclo IoT: sensar, conectar, almacenar, analizar, actuar">
+      <defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--ink-2)"/></marker></defs>
+      <rect class="svg-box2" x="5" y="15" width="150" height="80" rx="10"/><text class="svg-t" x="80" y="45" text-anchor="middle" font-weight="650">Sensar</text><text class="svg-s" x="80" y="65" text-anchor="middle">ECU J1939 · sensores</text>
+      <rect class="svg-box2" x="190" y="15" width="150" height="80" rx="10"/><text class="svg-t" x="265" y="45" text-anchor="middle" font-weight="650">Conectar</text><text class="svg-s" x="265" y="65" text-anchor="middle">gateway celular / Wi-Fi</text>
+      <rect class="svg-box2" x="375" y="15" width="150" height="80" rx="10"/><text class="svg-t" x="450" y="45" text-anchor="middle" font-weight="650">Almacenar</text><text class="svg-s" x="450" y="65" text-anchor="middle">series por unidad</text>
+      <rect class="svg-box2" x="560" y="15" width="150" height="80" rx="10"/><text class="svg-t" x="635" y="45" text-anchor="middle" font-weight="650">Analizar</text><text class="svg-s" x="635" y="65" text-anchor="middle">umbral + tendencia</text>
+      <rect class="svg-hl" x="745" y="15" width="150" height="80" rx="10"/><text class="svg-t" x="820" y="45" text-anchor="middle" font-weight="650">Actuar</text><text class="svg-s" x="820" y="65" text-anchor="middle">alerta → OT → JDE</text>
+      <path class="svg-ln" d="M155,55H188" marker-end="url(#a2)"/><path class="svg-ln" d="M340,55H373" marker-end="url(#a2)"/><path class="svg-ln" d="M525,55H558" marker-end="url(#a2)"/><path class="svg-ln" d="M710,55H743" marker-end="url(#a2)"/>
+    </svg>
+    <figcaption>Ejemplo de la presentación: una temperatura de refrigerante que sube de forma sostenida genera una alerta predictiva y una OT (con repuestos sugeridos) antes de que la unidad se recaliente en ruta. Si la variable llega a nivel crítico, la OT pasa a prioridad P1 y la unidad sale de servicio (JDE <code>EQST = DN</code>).</figcaption>
+  </figure>
+  <div class="callout"><b>Regla de alertas críticas: OT automática siempre.</b>
+    <ul style="margin:6px 0 0;padding-left:18px">
+      <li>Toda alerta <b>crítica</b> genera de inmediato una OT correctiva <b>P1</b> con los repuestos sugeridos, retira la unidad de servicio y la registra en JDE (F4801, F1201.EQST = DN). No depende de ningún ajuste.</li>
+      <li>Si la unidad ya tiene una OT abierta del mismo sistema (por ejemplo, la predictiva que anticipó la falla), la alerta se asocia a esa OT, que se escala a P1.</li>
+      <li>Una alerta crítica no se puede descartar. Además, en cada lectura se verifica que ninguna alerta crítica haya quedado sin su OT.</li>
+      <li>El interruptor de la pantalla de Telemetría controla solo las alertas predictivas y de advertencia (OT automática o revisión manual).</li>
+    </ul></div>
+
+  <h3>5.3 Inspección diaria (mantenimiento autónomo)</h3>
+  <p>El conductor completa 10 ítems antes de salir. Un ítem de seguridad (neumáticos, frenos, puertas, dirección, emergencia) marcado con falla genera una OT P1 y deja la unidad <b>no apta</b>. Un defecto menor genera una OT programada y la unidad puede salir. El odómetro informado actualiza la ficha y se envía a JDE en el lote de lecturas.</p>
+</section>
+
+<section id="arquitectura">
+  <h2><span class="n">6</span>Arquitectura</h2>
+  <p class="lead">El CMMS gestiona el proceso de mantenimiento y JDE es el sistema de registro de equipos, inventario, compras y contabilidad.</p>
+  <figure class="card">
+    <svg viewBox="0 0 900 260" role="img" aria-label="Arquitectura de la solución">
+      <defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--ink-2)"/></marker></defs>
+      <rect class="svg-box2" x="5" y="10" width="140" height="230" rx="12"/>
+      <text class="svg-t" x="75" y="36" text-anchor="middle" font-weight="650">Usuarios</text>
+      <text class="svg-s" x="75" y="62" text-anchor="middle">Navegador web</text><text class="svg-s" x="75" y="80" text-anchor="middle">taller · pañol</text><text class="svg-s" x="75" y="98" text-anchor="middle">planificación</text><text class="svg-s" x="75" y="116" text-anchor="middle">gerencia</text>
+      <text class="svg-t" x="75" y="160" text-anchor="middle" font-weight="650">Unidades</text><text class="svg-s" x="75" y="182" text-anchor="middle">ECU · sensores</text><text class="svg-s" x="75" y="200" text-anchor="middle">gateway IoT</text>
+      <rect class="svg-box2" x="185" y="10" width="380" height="230" rx="12"/>
+      <text class="svg-t" x="375" y="36" text-anchor="middle" font-weight="650">CMMS de flota (Node.js)</text>
+      <rect class="svg-box" x="200" y="50" width="170" height="40" rx="8"/><text class="svg-s" x="285" y="75" text-anchor="middle">UI web (SPA) + API REST</text>
+      <rect class="svg-box" x="380" y="50" width="170" height="40" rx="8"/><text class="svg-s" x="465" y="75" text-anchor="middle">Servicios de dominio</text>
+      <rect class="svg-box" x="200" y="100" width="170" height="40" rx="8"/><text class="svg-s" x="285" y="125" text-anchor="middle">Telemetría + predictivo</text>
+      <rect class="svg-hl" x="380" y="100" width="170" height="40" rx="8"/><text class="svg-s" x="465" y="125" text-anchor="middle">Outbox · reintentos</text>
+      <rect class="svg-box" x="200" y="150" width="170" height="40" rx="8"/><text class="svg-s" x="285" y="175" text-anchor="middle">KPIs y plan preventivo</text>
+      <rect class="svg-hl" x="380" y="150" width="170" height="40" rx="8"/><text class="svg-s" x="465" y="175" text-anchor="middle">Sincronización entrante</text>
+      <rect class="svg-box" x="200" y="198" width="350" height="32" rx="8"/><text class="svg-s" x="375" y="219" text-anchor="middle">Base local (SQLite en el MVP)</text>
+      <rect class="svg-hl" x="610" y="60" width="120" height="130" rx="12"/>
+      <text class="svg-t" x="670" y="100" text-anchor="middle" font-weight="650">AIS Server</text><text class="svg-s" x="670" y="120" text-anchor="middle">REST + token</text><text class="svg-t" x="670" y="148" text-anchor="middle" font-weight="650">Orchestrator</text><text class="svg-s" x="670" y="168" text-anchor="middle">FLT_*</text>
+      <rect class="svg-box2" x="760" y="10" width="135" height="230" rx="12"/>
+      <text class="svg-t" x="827" y="36" text-anchor="middle" font-weight="650">JDE E1 9.2</text>
+      <text class="svg-s" x="827" y="64" text-anchor="middle">Equipos F1201</text><text class="svg-s" x="827" y="84" text-anchor="middle">PM F1207</text><text class="svg-s" x="827" y="104" text-anchor="middle">OTs F4801</text><text class="svg-s" x="827" y="124" text-anchor="middle">F3111 · F31122</text><text class="svg-s" x="827" y="144" text-anchor="middle">Stock F41021</text><text class="svg-s" x="827" y="164" text-anchor="middle">Cardex F4111</text><text class="svg-s" x="827" y="184" text-anchor="middle">Compras F4311</text><text class="svg-s" x="827" y="204" text-anchor="middle">Contab. F0911</text>
+      <path class="svg-ln" d="M145,70H198" marker-end="url(#a3)"/><path class="svg-ln" d="M145,180Q170,150 198,122" marker-end="url(#a3)"/>
+      <path class="svg-ln" d="M550,118L608,104" marker-end="url(#a3)"/><path class="svg-ln" d="M610,172L552,170" marker-end="url(#a3)"/>
+      <path class="svg-ln" d="M730,100H758" marker-end="url(#a3)"/><path class="svg-ln" d="M758,160H732" marker-end="url(#a3)"/>
+    </svg>
+    <figcaption>En el MVP, JDE se reemplaza por un simulador del AIS Server que expone los mismos endpoints y tablas F. Para pasar al JDE real alcanza con cambiar la URL y las credenciales.</figcaption>
+  </figure>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card"><h4>Tecnología del MVP</h4><ul>
+      <li>Node.js 22+ sin dependencias externas (SQLite incorporado)</li>
+      <li>Interfaz web con módulos ES y gráficos SVG propios, en tema claro y oscuro</li>
+      <li>API REST JSON y cliente AIS con token <code>jde-AIS-Auth</code></li>
+      <li>Simulador de JDE AIS con tablas F y un visor web</li></ul></div>
+    <div class="card"><h4>Evolución a producción</h4><ul>
+      <li>Base de datos corporativa (SQL Server u Oracle) y base de series de tiempo para la telemetría</li>
+      <li>Ingesta IoT por MQTT o HTTP desde los gateways</li>
+      <li>SSO y roles; HTTPS; credenciales del AIS en un almacén de secretos</li>
+      <li>App móvil o PWA para la inspección del conductor y el técnico</li></ul></div>
+  </div>
+</section>
+
+<section id="jde">
+  <h2><span class="n">7</span>Integración con JDE E1 9.2</h2>
+  <p class="lead">Se usa el canal estándar de Oracle para integrar con JDE: AIS Server con orquestaciones de Orchestrator Studio. No hay acceso directo a la base de datos, así que se respetan las reglas de negocio de JDE (business functions).</p>
+  <div class="grid g3">
+    <div class="card"><h4>Autenticación</h4><p><code>POST /jderest/v2/tokenrequest</code> con usuario, entorno (p. ej. JDV920) y rol. El token se envía en el encabezado <code>jde-AIS-Auth</code> y se renueva solo ante un 401.</p></div>
+    <div class="card"><h4>Salida: patrón outbox</h4><p>Cada cambio se graba en la cola de salida en la misma transacción que el cambio local. Los mensajes se envían en orden (FIFO); los que dependen del número de OT de JDE esperan a que se cree la OT.</p></div>
+    <div class="card"><h4>Errores y resiliencia</h4><p>Ante una caída o un timeout (5xx o error de red) se reintenta con espera exponencial de hasta 60 s. Un rechazo de validación de JDE (4xx) queda en ERROR para revisión y reintento manual. Todas las llamadas quedan registradas.</p></div>
+  </div>
+
+  <h3>7.1 Catálogo de orquestaciones</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Orquestación</th><th>Sentido</th><th>Entrada</th><th>Salida</th><th>Objetos JDE</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">FLT_GetEquipmentList</td><td><span class="b in">JDE → CMMS</span></td><td>—</td><td>Equipment[ AssetNumber, UnitNumber, Description, BusinessUnit, Status, Serial, Manufacturer, Model, Year, Category, Line, Meter ]</td><td>F1201 · medidores</td></tr>
+      <tr><td class="mono">FLT_UpdateMeterReadings</td><td><span class="b out">CMMS → JDE</span></td><td>Readings[ UnitNumber, Meter, Date ]</td><td>Updated</td><td>P12120</td></tr>
+      <tr><td class="mono">FLT_UpdateEquipmentStatus</td><td><span class="b out">CMMS → JDE</span></td><td>UnitNumber, Status (AV/IR/DN)</td><td>—</td><td>F1201.EQST</td></tr>
+      <tr><td class="mono">FLT_CreateWorkOrder</td><td><span class="b out">CMMS → JDE</span></td><td>UnitNumber, Type, Description, Priority, ServiceType, Meter, ExternalId, Date</td><td>WorkOrderNumber, OrderType (WM), Status</td><td>F4801</td></tr>
+      <tr><td class="mono">FLT_UpdateWorkOrderStatus</td><td><span class="b out">CMMS → JDE</span></td><td>WorkOrderNumber, Status</td><td>—</td><td>F4801.SRST</td></tr>
+      <tr><td class="mono">FLT_AddWorkOrderParts</td><td><span class="b out">CMMS → JDE</span></td><td>WorkOrderNumber, Parts[ ItemNumber, Quantity ]</td><td>Lines[ LineId, UnitCost, OnHand ]</td><td>F3111</td></tr>
+      <tr><td class="mono">FLT_IssueParts</td><td><span class="b out">CMMS → JDE</span></td><td>WorkOrderNumber, ItemNumber, Quantity</td><td>Issued, OnHand, UnitCost</td><td>F41021 · F4111 (IM)</td></tr>
+      <tr><td class="mono">FLT_AddLaborHours</td><td><span class="b out">CMMS → JDE</span></td><td>WorkOrderNumber, AddressNumber, Hours, Rate, Date</td><td>—</td><td>F31122</td></tr>
+      <tr><td class="mono">FLT_CompleteWorkOrder</td><td><span class="b out">CMMS → JDE</span></td><td>WorkOrderNumber, Meter, RootCause, Date</td><td>ActualHours, ActualCost, GLBatch</td><td>F4801 (99) · F0911</td></tr>
+      <tr><td class="mono">FLT_UpdatePMSchedule</td><td><span class="b out">CMMS → JDE</span></td><td>UnitNumber, ServiceType, LastMeter, LastDate</td><td>—</td><td>F1207</td></tr>
+      <tr><td class="mono">FLT_GetInventory</td><td><span class="b in">JDE → CMMS</span></td><td>BranchPlant</td><td>Items[ ItemNumber, Description, Criticality, OnHand, SafetyStock, ReorderQty, UnitCost, LeadTimeDays, Supplier ]</td><td>F4101 · F41021</td></tr>
+      <tr><td class="mono">FLT_CreateRequisition</td><td><span class="b out">CMMS → JDE</span></td><td>ItemNumber, Quantity, Supplier, BranchPlant</td><td>OrderNumber, OrderType (OR), Status</td><td>F4311</td></tr>
+      <tr><td class="mono">FLT_GetRequisitions</td><td><span class="b in">JDE → CMMS</span></td><td>—</td><td>Requisitions[ OrderNumber, OrderType, ItemNumber, LastStatus ]</td><td>F4311</td></tr>
+      <tr><td class="mono">FLT_GetWorkOrders</td><td><span class="b in">JDE → CMMS</span></td><td>Since</td><td>WorkOrders[ WorkOrderNumber, Status, ActualHours, ActualCost ]</td><td>F4801</td></tr>
+    </tbody></table></div>
+
+  <h3>7.2 Mapeo de códigos</h3>
+  <div class="grid g3">
+    <div class="card"><h4>Etapa de OT → <code>F4801.SRST</code></h4><p>Orden 10 · Diagnóstico 20 · Repuestos 30 · Reparación 40 · Control 80 · Cerrada 99</p></div>
+    <div class="card"><h4>Estado de unidad → <code>F1201.EQST</code></h4><p>Disponible AV · En taller IR · Fuera de servicio DN</p></div>
+    <div class="card"><h4>Nivel preventivo → <code>F1207.SRVT</code></h4><p>A PMA · B PMB · C PMC · Mayor PMM</p></div>
+  </div>
+  <div class="callout"><b>Antes de conectar con el JDE real:</b>
+    <ul style="margin:6px 0 0;padding-left:18px">
+      <li>Construir las orquestaciones <code>FLT_*</code> en un entorno de prueba.</li>
+      <li>Validar con el equipo JDE los UDC (00/TY, 00/SS, 12/ES), la sucursal (M30), las cuentas contables (6410 repuestos, 6420 mano de obra) y las versiones de las aplicaciones.</li>
+      <li>Crear un usuario de servicio con un rol de permisos mínimos.</li>
+    </ul></div>
+</section>
+
+<section id="datos">
+  <h2><span class="n">8</span>Modelo de datos (CMMS)</h2>
+  <p class="lead">Las entidades principales y su relación con JDE.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Entidad</th><th>Contenido</th><th>Origen / relación con JDE</th></tr></thead>
+    <tbody>
+      <tr><td><b>Unidad</b></td><td>Interno, dominio, modelo, año, tracción, cochera, línea, odómetro, estado</td><td>Maestro en JDE (F1201). El estado se calcula en el CMMS y se envía a JDE</td></tr>
+      <tr><td><b>Registro de km</b></td><td>Km por unidad y día</td><td>Base del MDBF y del costo por km. El odómetro se envía a JDE</td></tr>
+      <tr><td><b>Plan y programación PM</b></td><td>Niveles, intervalos en km y días, horas estándar, tareas, kit; último servicio por unidad</td><td>F1207 (service types PMA a PMM)</td></tr>
+      <tr><td><b>Orden de trabajo</b></td><td>Tipo, origen, sistema, prioridad, falla en ruta, inmovilización, etapa, diagnóstico, causa raíz, fechas</td><td>F4801 con el número JDE (DOCO) y el estado de sincronización</td></tr>
+      <tr><td><b>Repuestos de la OT / mano de obra</b></td><td>Cantidad, cantidad entregada, costo; técnico y horas</td><td>F3111, F4111 · F31122</td></tr>
+      <tr><td><b>Repuesto</b></td><td>Criticidad, stock, stock de seguridad, reposición, costo, plazo, rotable</td><td>Maestro en JDE (F4101, F41021)</td></tr>
+      <tr><td><b>Requisición</b></td><td>Artículo, cantidad, motivo, OT asociada</td><td>F4311 (OR → OP)</td></tr>
+      <tr><td><b>Alerta</b></td><td>Variable, sistema, tipo (umbral o predictiva), severidad, mensaje, OT generada</td><td>Exclusiva del CMMS</td></tr>
+      <tr><td><b>Inspección</b></td><td>Conductor, ítems, defectos, odómetro</td><td>Exclusiva del CMMS. Genera OTs</td></tr>
+      <tr><td><b>Cola de salida / registro</b></td><td>Orquestación, payload, estado, intentos, respuesta; llamadas HTTP</td><td>Trazabilidad de la integración</td></tr>
+    </tbody></table></div>
+</section>
+
+<section id="kpis">
+  <h2><span class="n">9</span>Indicadores</h2>
+  <p class="lead">Sin línea de base no se puede comprobar la mejora. El MVP calcula estos indicadores sobre 30, 90 o 180 días y los compara con el período anterior.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Indicador</th><th>Qué mide</th><th>Cómo se calcula</th></tr></thead>
+    <tbody>
+      <tr><td><b>Disponibilidad de flota</b></td><td>Unidades listas para operar</td><td>Horas disponibles ÷ horas totales × 100</td></tr>
+      <tr><td><b>Distancia media entre fallas (MDBF)</b></td><td>Confiabilidad en servicio</td><td>Km en servicio ÷ fallas mayores (en ruta)</td></tr>
+      <tr><td><b>Tiempo medio de reparación (MTTR)</b></td><td>Rapidez para volver a servicio</td><td>Horas de reparación ÷ cantidad de reparaciones</td></tr>
+      <tr><td><b>Cumplimiento del preventivo</b></td><td>Preventivos hechos a tiempo</td><td>Preventivos dentro de ±10% ÷ programados × 100</td></tr>
+      <tr><td><b>Mantenimiento planificado</b></td><td>Peso del trabajo programado</td><td>Horas planificadas ÷ horas totales × 100</td></tr>
+      <tr><td><b>Costo por kilómetro</b></td><td>Eficiencia económica</td><td>Costo de mantenimiento ÷ km recorridos</td></tr>
+      <tr><td><b>Disponibilidad esperada</b></td><td>Confiabilidad y rapidez combinadas</td><td>MTBF ÷ (MTBF + MTTR) × 100</td></tr>
+    </tbody></table></div>
+  <p style="margin-top:12px">Metas de MDBF de referencia: Long Beach Transit 9.700 km · MARTA 12.100 km · SFMTA 19.300 km · OCTA 22.500 km. Cada agencia define «falla» a su manera, así que conviene fijar una definición propia (en el MVP, falla en ruta = OT con «falla en ruta») y comparar contra la propia tendencia.</p>
+</section>
+
+<section id="predictivo">
+  <h2><span class="n">10</span>Modelo predictivo</h2>
+  <p class="lead">El MVP usa un modelo transparente y explicable, pensado para reemplazarse por uno de machine learning cuando haya datos suficientes.</p>
+  <div class="grid g2">
+    <div class="card"><h4>Detección en tiempo real</h4><ul>
+      <li><b>Umbral:</b> advertencia y crítico por variable, con código DTC J1939 (SPN/FMI).</li>
+      <li><b>Tendencia:</b> regresión lineal sobre las últimas 20 lecturas. Si la proyección cruza el umbral de advertencia dentro del horizonte (90 min de operación) y la pendiente es significativa, se emite una alerta predictiva.</li>
+      <li>Hay una sola alerta activa por unidad y variable; si la severidad sube, la OT se escala.</li>
+      <li><b>Crítica:</b> siempre genera una OT P1 y retira la unidad de servicio.</li></ul></div>
+    <div class="card"><h4>Riesgo por unidad</h4><ul>
+      <li><b>Puntaje (0 a 100):</b> combina alertas, tendencias, vida útil de las pastillas, correctivos de los últimos 90 días, fallas en ruta de los últimos 180 días, preventivo vencido, antigüedad y fallas recurrentes.</li>
+      <li><b>Probabilidad de falla a 30 días:</b> 1 − e<sup>−λ·30</sup>, donde λ es la tasa histórica de la unidad ajustada por su riesgo actual.</li>
+      <li><b>Proactivo:</b> 3 o más correctivos del mismo sistema en 180 días se marcan para análisis de causa raíz.</li></ul></div>
+  </div>
+  <div class="callout"><b>Qué esperar (referencias industriales):</b> entre 18 y 30% menos costo de mantenimiento y entre 30 y 50% menos paradas no planificadas (McKinsey, DOE/PNNL). En el piloto de MTA New York City Transit, más de 80% de precisión en las alertas, 43% menos horas de trabajo y 24% menos costo de materiales en los casos estudiados. El resultado depende de la calidad de los datos: conviene empezar con sensores en los sistemas críticos de unas pocas unidades.</div>
+</section>
+
+<section id="implementacion">
+  <h2><span class="n">11</span>Plan de implementación</h2>
+  <p class="lead">Sigue la hoja de ruta de la presentación. El MVP permite empezar a medir desde el primer mes.</p>
+  <div class="roadmap">
+    <div class="card"><div class="when">Meses 1–2</div><h4>Diagnosticar</h4><p>Construir las orquestaciones <code>FLT_*</code> en un entorno JDE de prueba. Cargar los maestros reales. Medir la línea base de disponibilidad, MDBF y MTTR.</p></div>
+    <div class="card"><div class="when">Meses 3–6</div><h4>Estandarizar</h4><p>Poner en producción las OTs, el plan por niveles, los kits y el pañol. Capacitar al taller y a los conductores. Agregar roles y SSO.</p></div>
+    <div class="card"><div class="when">Meses 6–12</div><h4>Instrumentar</h4><p>Piloto de sensores y telemetría en 5 a 10 unidades, con ingesta MQTT y KPIs mensuales para la gerencia.</p></div>
+    <div class="card"><div class="when">Año 2</div><h4>Predecir</h4><p>Modelos de machine learning en sistemas críticos (frenos, puertas, motor), análisis sistemático de causa raíz y ajuste de intervalos por condición.</p></div>
+  </div>
+  <h3>Criterios de aceptación del MVP</h3>
+  <ul class="check">
+    <li>Una OT recorre las 6 etapas y queda reflejada en JDE con su costo real contabilizado</li>
+    <li>Una alerta predictiva genera una OT en el CMMS y en JDE sin intervención manual</li>
+    <li>Toda alerta crítica genera una OT P1 automática y deja la unidad fuera de servicio en JDE, aunque la OT automática para predictivas esté desactivada</li>
+    <li>Con JDE caído, el taller sigue operando y la cola se vacía en orden cuando el ERP vuelve</li>
+    <li>Un faltante de repuestos genera una requisición en JDE; al recibirse, el stock se actualiza solo</li>
+    <li>Los 7 KPIs se calculan sin carga manual</li>
+  </ul>
+</section>
+
+<section id="riesgos">
+  <h2><span class="n">12</span>Riesgos y mitigaciones</h2>
+  <p class="lead">Basado en lo aprendido por otras agencias de transporte.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Riesgo</th><th>Mitigación en el diseño</th></tr></thead>
+    <tbody>
+      <tr><td>Preventivos fuera de plazo (PVTA: atrasos de hasta 9.800 km)</td><td>Semáforo por nivel con tolerancia de ±10%, generación masiva de OTs y KPI de cumplimiento en el tablero</td></tr>
+      <tr><td>Tareas incompletas en las OTs (OCTA)</td><td>Tareas y kit por nivel cargados automáticamente; diagnóstico y causa raíz obligatorios</td></tr>
+      <tr><td>Costos de sensorización y suscripciones</td><td>Piloto en pocas unidades y en los sistemas con menor MDBF (el ranking por sistema indica dónde empezar)</td></tr>
+      <tr><td>Integración con los sistemas existentes</td><td>Solo canales estándar de JDE (AIS y Orchestrator), patrón outbox y trazabilidad completa de cada llamada</td></tr>
+      <tr><td>Datos propietarios del fabricante</td><td>Lectura por el bus CAN estándar (SAE J1939), exigido por APTA</td></tr>
+      <tr><td>Escepticismo de los técnicos</td><td>Alertas explicables (variable, tendencia, minutos hasta el umbral y causa probable) y KPIs visibles para el taller</td></tr>
+      <tr><td>Caídas del ERP</td><td>Operación desacoplada con reintentos automáticos y sin pérdida de mensajes</td></tr>
+    </tbody></table></div>
+</section>
+
+<section id="ejecutar">
+  <h2><span class="n">13</span>Cómo ejecutar el MVP</h2>
+  <p class="lead">Requiere Node.js 22.13 o superior. No hay que instalar nada más.</p>
+  <div class="grid g2">
+    <div class="card"><h4>Arranque</h4><p><code>npm start</code> o doble clic en <code>start.bat</code>, dentro de <code>C:\VS_Code\Mantenimiento</code>.</p>
+      <ul><li>CMMS: <a href="http://localhost:3100">http://localhost:3100</a></li><li>JDE simulado: <a href="http://localhost:8091">http://localhost:8091</a></li><li><code>npm run reset</code> regenera los datos de demostración</li></ul></div>
+    <div class="card"><h4>Demo sin servidor</h4><p><code>Demo-Mantenimiento-Flota.html</code> (en esta misma carpeta) abre todas las pantallas con una instantánea de datos y sin instalar nada. Las acciones que registran o envían a JDE requieren el MVP en ejecución.</p></div>
+  </div>
+  <h3>Recorrido sugerido (unos 10 minutos)</h3>
+  <ol>
+    <li><b>Tablero:</b> KPIs, taller en curso y estado de JDE.</li>
+    <li><b>Telemetría IoT:</b> alertas predictivas que crean OTs solas; las críticas generan siempre una OT P1. Con ⚡ se simula una falla.</li>
+    <li><b>Una OT:</b> avanzar las etapas y ver en <i>Integración JDE</i> cada orquestación con su payload. Al cerrar, se ve el costo real contabilizado.</li>
+    <li><b>Plan preventivo:</b> generar las OTs de los vencidos con su kit.</li>
+    <li><b>Inspección diaria:</b> marcar una falla de frenos; la unidad queda no apta y en JDE pasa a DN.</li>
+    <li><b>Integración JDE:</b> simular la caída del ERP, seguir operando y restablecer. La cola se vacía en orden.</li>
+  </ol>
+</section>
+
+<footer>Fuentes de la presentación: TRB/TCRP (2010); FTA; NASEM/TCRP (2025); UITP, caso MTA New York City Transit (2022); auditorías de PVTA y OCTA; Metro Transit; MARTA; SFMTA; HeavyVehicleInspection; OxMaint; McKinsey (vía Wiss); DOE/PNNL (vía O'Reilly). Los números de programa, UDC y cuentas JDE del documento son de referencia y deben validarse contra la instalación.</footer>
+</main>
+</div>
+</body>
+</html>

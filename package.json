@@ -1,0 +1,15 @@
+{
+  "name": "flota-mantenimiento-mvp",
+  "version": "0.1.0",
+  "description": "MVP de gestión de mantenimiento de flota de colectivos integrado con JD Edwards EnterpriseOne 9.2 (AIS / Orchestrator)",
+  "private": true,
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --no-warnings server/index.js",
+    "jde-mock": "node --no-warnings jde-mock/server.js",
+    "reset": "node --no-warnings server/reset.js",
+    "build:demo": "node --no-warnings tools/build-standalone.js"
+  }
+}
