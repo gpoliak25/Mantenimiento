@@ -30,6 +30,22 @@ npm start          # o doble clic en start.bat
 - `JDE_MOCK=0` arranca la app sin el simulador de JDE.
 - `npm run build:demo` (con el MVP en ejecución) genera `entregables/Demo-Mantenimiento-Flota.html`: una demo de un solo archivo que funciona sin servidor. El documento de diseño está en `entregables/MVP-Mantenimiento-Flota.html`.
 
+## Torre de Control Logística (demo)
+
+[entregables/Torre-Control-Logistica.html](entregables/Torre-Control-Logistica.html) es una demo de un solo archivo de la **Torre de Control Logística de EISPLUS**: *"Tu ERP sabe qué hay que entregar. ¿Sabe qué pasó en la calle?"*. Se abre con doble clic o en http://localhost:3100/torre con el servidor en marcha.
+
+Simula en el navegador una jornada de distribución en el AMBA:
+
+- **Flota en tiempo real:** 18 unidades (10 propias y 8 de 3 transportistas) con pedidos de venta de JDE.
+- **Cadena de frío:** temperatura de cada equipo, con alerta anticipada de excursiones.
+- **Mantenimiento:** la telemetría detecta la falla (motor por ECU J1939, neumáticos por TPMS), alerta a Mantenimiento y Tráfico y genera la OT en JDE (F4801). La OT se sigue hasta su cierre con costo real, junto con las entregas afectadas y la salud de la flota.
+- **Machine Learning:** ETA del modelo comparado con el ETA del GPS, riesgo de retraso por entrega y patrones detectados.
+- **Alertas inteligentes por rol:** torre, tráfico, calidad, atención al cliente, mantenimiento y costos.
+- **Costo real por entrega:** comparado con el estimado de JDE, con las causas del desvío.
+- **Integración con JDE:** solo AIS y Orchestrator, sin customizar el ERP. Incluye el piloto acotado.
+
+Controles: la velocidad de simulación y el menú **⚡ Simular evento**. Con `?hora=1000` se arranca la jornada más avanzada y con `#costos`, `#frio`, `#ml`, etc. se abre directamente una pestaña.
+
 ## Arquitectura
 
 ```

@@ -1,0 +1,1360 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Torre de Control Logística</title>
+<meta name="description" content="Demo interactiva de la Torre de Control Logística de EISPLUS: flota propia y tercerizada en tiempo real, cadena de frío, Machine Learning, alertas por rol y costo real por entrega integrado con JD Edwards EnterpriseOne.">
+<meta property="og:title" content="Torre de Control Logística · EISPLUS">
+<meta property="og:description" content="Tu ERP sabe qué hay que entregar. ¿Sabe qué pasó en la calle? Demo interactiva con datos simulados.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#071226">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='none' stroke='%23ff8a1f' stroke-width='3'/%3E%3Crect x='7' y='11' width='12' height='9' rx='1.5' fill='%2322d38b'/%3E%3Cpath d='M19 14h4l3 3v3h-7z' fill='%2322d38b'/%3E%3C/svg%3E">
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #071226; --bg2: #0b1a33; --panel: #0f2140; --panel2: #13284d; --line: rgba(120,170,255,.14); --line2: rgba(120,170,255,.24);
+  --ink: #f2f6ff; --ink2: #b7c4dd; --muted: #7d8db0;
+  --green: #22d38b; --orange: #ff8a1f; --blue: #3aa0ff; --cyan: #38d6f5; --violet: #9c8cff; --yellow: #f7c948; --red: #ff5d5d;
+  --good-bg: rgba(34,211,139,.14); --warn-bg: rgba(247,201,72,.14); --crit-bg: rgba(255,93,93,.15); --info-bg: rgba(58,160,255,.15); --or-bg: rgba(255,138,31,.15);
+  --land: #0d1d38; --land2: #10264a; --water: #0a2a52; --road: rgba(140,180,255,.20);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font: 13.5px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: radial-gradient(1200px 600px at 70% -10%, #12305c 0%, var(--bg) 60%) fixed; color: var(--ink); min-height: 100vh; }
+a { color: var(--cyan); }
+button { font: inherit; cursor: pointer; }
+.num { font-variant-numeric: tabular-nums; }
+.mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12px; }
+
+/* top bar */
+.top { display: flex; align-items: center; gap: 18px; padding: 12px 20px; border-bottom: 1px solid var(--line); background: rgba(7,18,38,.82); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 20; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); }
+.brand svg { height: 30px; width: auto; }
+.brand .t { line-height: 1.1; }
+.brand .t b { display: block; font-size: 15px; }
+.brand .t span { font-size: 11px; letter-spacing: .14em; color: var(--green); font-weight: 700; }
+.tabs { display: flex; gap: 2px; flex-wrap: wrap; }
+.tabs button { background: transparent; border: 0; color: var(--ink2); padding: 7px 11px; border-radius: 8px; font-weight: 600; font-size: 13px; }
+.tabs button:hover { background: rgba(255,255,255,.05); color: var(--ink); }
+.tabs button.on { background: var(--panel2); color: var(--ink); box-shadow: inset 0 -2px 0 var(--orange); }
+.top .r { margin-left: auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+select, .btn { background: var(--panel); color: var(--ink); border: 1px solid var(--line2); border-radius: 8px; padding: 6px 10px; font-size: 12.5px; }
+.btn:hover { border-color: var(--cyan); }
+.btn.primary { background: var(--orange); border-color: var(--orange); color: #1b0d00; font-weight: 700; }
+.seg { display: inline-flex; border: 1px solid var(--line2); border-radius: 8px; overflow: hidden; }
+.seg button { background: var(--panel); color: var(--ink2); border: 0; padding: 6px 9px; font-size: 12px; font-weight: 600; }
+.seg button.on { background: var(--cyan); color: #04202a; }
+.clock { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .02em; min-width: 64px; text-align: right; }
+.clock small { display: block; font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: .08em; text-align: right; }
+.jde { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink2); }
+.jde::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+.menu { position: relative; }
+.menu .dd { position: absolute; right: 0; top: calc(100% + 6px); background: var(--panel); border: 1px solid var(--line2); border-radius: 10px; padding: 6px; min-width: 300px; display: none; box-shadow: 0 16px 40px rgba(0,0,0,.45); z-index: 30; }
+.menu.open .dd { display: block; }
+.menu .dd button { display: block; width: 100%; text-align: left; background: transparent; border: 0; color: var(--ink); padding: 8px 10px; border-radius: 6px; }
+.menu .dd button:hover { background: var(--panel2); }
+.menu .dd button small { display: block; color: var(--muted); font-size: 11.5px; }
+.menu .dd button:disabled { opacity: .45; cursor: default; }
+
+/* layout */
+.view { padding: 16px 20px 40px; max-width: 1680px; margin: 0 auto; }
+.hero { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin: 4px 0 14px; flex-wrap: wrap; }
+.hero h1 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
+.hero h1 em { font-style: normal; color: var(--orange); }
+.hero p { margin: 2px 0 0; color: var(--ink2); }
+.rolebar { font-size: 12.5px; color: var(--ink2); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+.rolebar b { color: var(--ink); }
+.grid { display: grid; gap: 14px; }
+.grid > * { min-width: 0; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.g4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+.main-grid { grid-template-columns: minmax(0, 1.9fr) minmax(330px, 1fr); }
+.card { background: linear-gradient(180deg, rgba(19,40,77,.92), rgba(15,33,64,.92)); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; min-width: 0; }
+.card > header { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+.card h2 { margin: 0; font-size: 14.5px; }
+.sub { color: var(--muted); font-size: 12px; }
+.mt { margin-top: 14px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 10px; }
+.tile { background: linear-gradient(180deg, rgba(19,40,77,.95), rgba(15,33,64,.95)); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; display: flex; gap: 10px; align-items: flex-start; min-width: 0; }
+.tile[data-go] { cursor: pointer; position: relative; transition: border-color .15s, transform .15s, background .15s; }
+.tile[data-go]:hover, .tile[data-go]:focus-visible { border-color: var(--cyan); transform: translateY(-1px); outline: none; }
+.tile[data-go].on { border-color: var(--orange); box-shadow: inset 0 0 0 1px var(--orange); }
+.tile .go { position: absolute; right: 10px; top: 8px; color: var(--muted); font-size: 12px; font-weight: 700; opacity: .7; }
+.tile[data-go]:hover .go { color: var(--cyan); opacity: 1; }
+.tile .ic { width: 34px; height: 34px; border-radius: 50%; border: 2px solid currentColor; display: grid; place-items: center; flex-shrink: 0; font-size: 15px; }
+.tile .k { font-size: 11.5px; color: var(--ink2); }
+.tile .v { font-size: 22px; font-weight: 750; letter-spacing: -.02em; white-space: nowrap; }
+.tile .v small { font-size: 12px; color: var(--ink2); font-weight: 600; margin-left: 2px; }
+.tile .d { font-size: 11.5px; color: var(--muted); }
+.c-green { color: var(--green); } .c-orange { color: var(--orange); } .c-blue { color: var(--blue); } .c-cyan { color: var(--cyan); } .c-red { color: var(--red); } .c-yellow { color: var(--yellow); } .c-violet { color: var(--violet); }
+
+/* badges */
+.b { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,.07); color: var(--ink2); white-space: nowrap; }
+.b.good { background: var(--good-bg); color: var(--green); }
+.b.warn { background: var(--warn-bg); color: var(--yellow); }
+.b.crit { background: var(--crit-bg); color: var(--red); }
+.b.info { background: var(--info-bg); color: var(--blue); }
+.b.or { background: var(--or-bg); color: var(--orange); }
+.b.pred { background: rgba(156,140,255,.16); color: var(--violet); }
+
+/* tables */
+.tw { overflow: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th { text-align: left; font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 7px 8px; border-bottom: 1px solid var(--line2); white-space: nowrap; position: sticky; top: 0; background: #11264a; z-index: 1; }
+td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tr.click { cursor: pointer; }
+tr.click:hover td { background: rgba(255,255,255,.035); }
+tr.sel td { background: rgba(58,160,255,.10); }
+td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* map */
+.mapwrap { position: relative; border-radius: 12px; overflow: hidden; background: var(--land); border: 1px solid var(--line); }
+.mapwrap svg { display: block; width: 100%; height: auto; }
+.maplegend { position: absolute; left: 10px; bottom: 10px; display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--ink2); background: rgba(7,18,38,.78); padding: 6px 10px; border-radius: 8px; }
+.maplegend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+.mapfilters { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { background: rgba(7,18,38,.82); border: 1px solid var(--line2); color: var(--ink2); padding: 4px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 600; }
+.chip.on { border-color: var(--cyan); color: var(--ink); background: rgba(56,214,245,.16); }
+.veh { cursor: pointer; }
+.veh text { font-size: 10.5px; font-weight: 800; fill: #071226; pointer-events: none; }
+.veh .lbl { fill: var(--ink); font-size: 10px; font-weight: 700; }
+.zone-lbl { fill: rgba(183,196,221,.35); font-size: 15px; font-weight: 800; letter-spacing: .2em; }
+.city-lbl { fill: rgba(183,196,221,.55); font-size: 9.5px; }
+@keyframes pulse { 0% { r: 9; opacity: .9; } 100% { r: 24; opacity: 0; } }
+.pulse { animation: pulse 1.4s ease-out infinite; }
+
+/* alerts */
+.alerts { display: flex; flex-direction: column; gap: 8px; max-height: 520px; overflow-y: auto; padding-right: 4px; }
+.al { border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; background: rgba(7,18,38,.45); }
+.al.new { border-color: rgba(255,138,31,.45); }
+.al .h { display: flex; justify-content: space-between; gap: 8px; align-items: center; margin-bottom: 4px; }
+.al .m { font-size: 12.5px; color: var(--ink); }
+.al .f { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; align-items: center; }
+.al .f .to { font-size: 11px; color: var(--muted); }
+.al .ack { margin-left: auto; background: transparent; border: 1px solid var(--line2); color: var(--ink2); border-radius: 6px; padding: 2px 8px; font-size: 11px; }
+.empty { padding: 26px; text-align: center; color: var(--muted); }
+
+/* misc */
+.bar { height: 7px; background: rgba(255,255,255,.08); border-radius: 4px; overflow: hidden; min-width: 60px; }
+.bar > span { display: block; height: 100%; border-radius: 4px; }
+.hbars { display: grid; gap: 7px; }
+.hbar { display: grid; grid-template-columns: minmax(120px, 40%) 1fr auto; gap: 10px; align-items: center; font-size: 12px; }
+.hbar .lab { color: var(--ink2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hbar .track { height: 12px; }
+.hbar .fill { height: 100%; border-radius: 0 4px 4px 0; }
+.hbar .val { font-variant-numeric: tabular-nums; min-width: 56px; text-align: right; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--ink2); margin-top: 8px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.heat { display: grid; gap: 2px; font-size: 10.5px; }
+.heat div { padding: 6px 0; text-align: center; border-radius: 3px; color: #071226; font-weight: 700; }
+.heat .hl { background: transparent; color: var(--ink2); text-align: left; font-weight: 600; padding-left: 2px; }
+.heat .hh { background: transparent; color: var(--muted); font-weight: 600; }
+.note { background: rgba(7,18,38,.5); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; color: var(--ink2); font-size: 12.5px; }
+.note b { color: var(--ink); }
+.stops { list-style: none; margin: 0; padding: 0; }
+.stops li { display: grid; grid-template-columns: 18px 1fr auto; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line); align-items: start; }
+.stops .dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 3px; border: 2px solid var(--muted); }
+.kv { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; margin: 8px 0; }
+.kv div { background: rgba(7,18,38,.45); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+.kv span { display: block; font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.kv b { font-size: 14px; }
+.flow { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
+.flow > div { background: rgba(7,18,38,.45); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.flow > div b { display: block; margin-bottom: 3px; }
+.flow .when { font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--orange); text-transform: uppercase; }
+.otcard { border: 1px solid var(--line2); border-radius: 12px; padding: 14px; background: rgba(7,18,38,.45); }
+.otcard.open { border-color: rgba(255,93,93,.45); }
+.tl { list-style: none; margin: 8px 0 0; padding: 0; }
+.tl li { position: relative; padding: 0 0 10px 18px; font-size: 12.5px; color: var(--ink2); }
+.tl li::before { content: ""; position: absolute; left: 3px; top: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); }
+.tl li::after { content: ""; position: absolute; left: 6px; top: 14px; bottom: 0; width: 1px; background: var(--line2); }
+.tl li:last-child::after { display: none; }
+.tl li.jde::before { background: var(--green); }
+.tl li b { color: var(--ink); }
+.tl .ts { color: var(--muted); font-size: 11.5px; margin-right: 6px; font-variant-numeric: tabular-nums; }
+.steps { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
+.steps > div { background: rgba(7,18,38,.45); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 12.5px; color: var(--ink2); }
+.steps > div b { display: block; color: var(--ink); margin: 4px 0 3px; font-size: 13px; }
+.steps .n { font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--orange); }
+.go-btn { background: transparent; border: 1px solid var(--cyan); color: var(--cyan); border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
+@media (max-width: 1150px) { .steps { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+.toasts { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 50; max-width: min(380px, calc(100vw - 32px)); }
+.toast { background: var(--panel2); border: 1px solid var(--line2); border-left: 0; color: var(--ink); padding: 10px 12px; border-radius: 10px; font-size: 12.5px; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+.toast b { color: var(--orange); }
+.tt { position: fixed; pointer-events: none; z-index: 60; background: #0b1a33; border: 1px solid var(--line2); color: var(--ink); padding: 7px 9px; border-radius: 8px; font-size: 12px; opacity: 0; max-width: 300px; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+.tt.on { opacity: 1; }
+.foot { color: var(--muted); font-size: 11.5px; padding: 0 20px 24px; text-align: center; }
+.intro { position: fixed; inset: 0; z-index: 80; background: rgba(4,10,22,.78); backdrop-filter: blur(6px); display: flex; align-items: flex-start; justify-content: center; padding: 5vh 16px; overflow-y: auto; }
+.intro.hidden { display: none; }
+.intro .box { width: min(860px, 100%); background: linear-gradient(180deg, #13284d, #0b1a33); border: 1px solid var(--line2); border-radius: 18px; padding: 28px 30px; box-shadow: 0 30px 80px rgba(0,0,0,.55); }
+.intro .kick { color: var(--green); font-size: 11.5px; font-weight: 800; letter-spacing: .14em; }
+.intro h2 { font-size: 30px; line-height: 1.12; margin: 8px 0 6px; letter-spacing: -.02em; }
+.intro h2 em { font-style: normal; color: var(--orange); }
+.intro .lead { color: var(--ink2); font-size: 14.5px; margin: 0 0 18px; }
+.pillars { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 18px; }
+.pillars div { background: rgba(7,18,38,.55); border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-size: 12.5px; color: var(--ink2); }
+.pillars b { display: block; color: var(--ink); font-size: 13.5px; margin: 6px 0 3px; }
+.pillars .ic { width: 32px; height: 32px; border-radius: 50%; border: 2px solid currentColor; display: grid; place-items: center; font-size: 14px; }
+.intro .cols { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); gap: 18px; }
+.intro h3 { font-size: 13px; margin: 0 0 8px; color: var(--ink); }
+.intro ol, .intro ul { margin: 0; padding-left: 18px; color: var(--ink2); font-size: 12.5px; }
+.intro li { margin-bottom: 5px; }
+.intro li b { color: var(--ink); }
+.intro .acts { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+.intro .acts .btn { padding: 10px 16px; font-size: 13.5px; font-weight: 700; }
+.intro .disc { color: var(--muted); font-size: 11.5px; margin-top: 14px; }
+@media (max-width: 760px) { .pillars, .intro .cols { grid-template-columns: minmax(0,1fr); } .intro .box { padding: 20px; } .intro h2 { font-size: 23px; } }
+@media (max-width: 1150px) { .main-grid, .g3, .g4 { grid-template-columns: minmax(0,1fr); } .g2 { grid-template-columns: minmax(0,1fr); } .flow { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 640px) { .view { padding: 12px; } .top { padding: 10px 12px; } .flow, .kv { grid-template-columns: minmax(0,1fr); } }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#" data-tab="torre">
+    <svg viewBox="0 0 150 40" aria-label="eisplus"><path d="M18 6 A16 16 0 0 0 6 30" fill="none" stroke="#ff8a1f" stroke-width="3.2" stroke-linecap="round"/><text x="12" y="29" font-family="system-ui, Segoe UI, sans-serif" font-size="25" font-weight="800" fill="#22d38b">eisplus</text></svg>
+    <span class="t"><b>Torre de Control Logística</b><span>EISPLUS × JD EDWARDS</span></span>
+  </a>
+  <nav class="tabs" id="tabs">
+    <button data-tab="torre" class="on">Torre de control</button>
+    <button data-tab="entregas">Entregas</button>
+    <button data-tab="frio">Cadena de frío</button>
+    <button data-tab="mant">Mantenimiento</button>
+    <button data-tab="alertas">Alertas por rol</button>
+    <button data-tab="costos">Costo real por entrega</button>
+    <button data-tab="ml">Machine Learning</button>
+    <button data-tab="jde">Integración JDE</button>
+  </nav>
+  <div class="r">
+    <select id="role" title="Vista por rol"></select>
+    <div class="menu" id="scnMenu"><button class="btn" id="scnBtn">⚡ Simular evento ▾</button><div class="dd" id="scnDD"></div></div>
+    <div class="seg" id="speed"><button data-s="0">❚❚</button><button data-s="5">5×</button><button data-s="20" class="on">20×</button><button data-s="60">60×</button></div>
+    <div class="clock" id="clock">07:15<small>HORA OPERACIÓN</small></div>
+    <button class="btn" id="helpBtn" title="Guía de la demo" aria-label="Guía de la demo">?</button>
+    <span class="jde" id="jdePill">JDE E1 9.2</span>
+  </div>
+</header>
+<main class="view" id="view"></main>
+<footer class="foot">Demo interactiva con datos simulados · Torre de Control Logística EISPLUS · Integración de referencia con JD Edwards EnterpriseOne (AIS / Orchestrator)</footer>
+<div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introTitle">
+  <div class="box">
+    <div class="kick">EISPLUS · TORRE DE CONTROL LOGÍSTICA</div>
+    <h2 id="introTitle">Tu ERP sabe qué hay que entregar. <em>¿Sabe qué pasó en la calle?</em></h2>
+    <p class="lead">Una jornada de distribución en el AMBA, en vivo: 18 unidades propias y tercerizadas entregan 66 pedidos de JD Edwards. La torre integra cada vehículo con los pedidos, clientes y costos del ERP, sin reemplazar sistemas ni customizar JDE.</p>
+    <div class="pillars">
+      <div><span class="ic c-green">⌖</span><b>Flota en tiempo real</b>Propia y tercerizada, con ruta planificada y recorrido real.</div>
+      <div><span class="ic c-blue">❄</span><b>Cadena de frío</b>Temperatura de cada equipo y excursiones anticipadas.</div>
+      <div><span class="ic c-orange">◆</span><b>Alertas por rol</b>Cada responsable recibe lo que necesita, por su canal.</div>
+      <div><span class="ic c-green">▮</span><b>Costo real por entrega</b>De costear con estimados a costear con la realidad.</div>
+    </div>
+    <div class="cols">
+      <div><h3>Qué vas a ver durante la jornada</h3><ol>
+        <li><b>08:40</b> · Corte en Panamericana: el Machine Learning anticipa qué entregas no llegan a su ventana.</li>
+        <li><b>08:56</b> · Falla de motor en una unidad propia: alerta a Mantenimiento y OT generada en JDE (pestaña Mantenimiento).</li>
+        <li><b>09:08</b> · Un transportista se detiene fuera de ruta: alerta a Tráfico.</li>
+        <li><b>10:18</b> · El modelo anticipa una excursión de frío antes de que ocurra.</li>
+        <li><b>10:42</b> · Rechazo parcial en el cliente y su impacto en el costo real.</li>
+      </ol></div>
+      <div><h3>Cómo usarla</h3><ul>
+        <li>Hacé clic en los <b>indicadores</b> o en un <b>camión</b> para ver el detalle.</li>
+        <li>Cambiá el <b>rol</b> (arriba a la derecha) para ver las alertas de cada responsable.</li>
+        <li>Usá <b>⚡ Simular evento</b> para disparar un caso cuando quieras.</li>
+        <li>Ajustá la <b>velocidad</b>: 20× recorre la jornada en unos 15 minutos.</li>
+      </ul></div>
+    </div>
+    <div class="acts">
+      <button class="btn primary" data-start="">▶ Ver la jornada desde el inicio</button>
+      <button class="btn" data-start="1030">Ir a media mañana · 10:30</button>
+      <button class="btn" data-start="1145">Ver el cierre del día · 11:45</button>
+    </div>
+    <div class="disc">Demo con datos simulados: clientes, transportistas y métricas son ficticios. Los objetos de JD Edwards indicados son de referencia.</div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+<div class="tt" id="tt"></div>
+
+<script>
+'use strict';
+// ====================================================================== utilidades
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const nf = (d) => new Intl.NumberFormat('es-AR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const num = (v, d = 0) => (v == null || Number.isNaN(v) ? '—' : nf(d).format(v));
+const usd = (v, d = 0) => (v == null ? '—' : 'US$ ' + nf(d).format(v));
+const pct = (v, d = 0) => (v == null ? '—' : nf(d).format(v * 100) + '%');
+const hhmm = (t) => { if (t == null) return '—'; const m = Math.round(t / 60); return String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+const mins = (s) => Math.round(s / 60);
+function mulberry32(a) { return function () { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const R = mulberry32(2026);
+const rnd = (a, b) => a + R() * (b - a);
+const gauss = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const sigmoid = (x) => 1 / (1 + Math.exp(-x));
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+// ====================================================================== dominio
+const KM = 0.08; // km por unidad de mapa
+const DAY0 = 7 * 3600 + 15 * 60;
+const BASE_SPEED = { Norte: 40, CABA: 24, Oeste: 36, Sur: 38, CD: 52 };
+const DEPOT = { id: 'CD', name: 'Centro de distribución Pilar', city: 'Pilar', x: 300, y: 120, zone: 'CD' };
+
+const CUSTOMERS = [
+  ['C01', 'Supermercado La Estrella', 'San Isidro', 660, 215, 'Norte'], ['C02', 'Farmacia Central', 'Vicente López', 690, 262, 'Norte'],
+  ['C03', 'Almacén del Río', 'Tigre', 590, 140, 'Norte'], ['C04', 'Autoservicio Las Lomas', 'San Fernando', 625, 170, 'Norte'],
+  ['C05', 'Hipermercado Norte', 'Martínez', 672, 238, 'Norte'], ['C06', 'Mayorista Escobar', 'Escobar', 430, 70, 'Norte'],
+  ['C07', 'Frigorífico Pampa', 'Garín', 470, 105, 'Norte'], ['C08', 'Almacén Gourmet', 'Palermo', 715, 318, 'CABA'],
+  ['C09', 'Restaurante El Puerto', 'Puerto Madero', 765, 365, 'CABA'], ['C10', 'Supermercado Belgrano', 'Belgrano', 712, 295, 'CABA'],
+  ['C11', 'Cadena Fresco Caballito', 'Caballito', 705, 352, 'CABA'], ['C12', 'Hotel Plaza', 'Retiro', 752, 340, 'CABA'],
+  ['C13', 'Heladería Italia', 'Recoleta', 738, 330, 'CABA'], ['C14', 'Autoservicio Flores', 'Flores', 690, 372, 'CABA'],
+  ['C15', 'Mayorista Oeste', 'Ituzaingó', 470, 345, 'Oeste'], ['C16', 'Autoservicio Don Pedro', 'Morón', 540, 350, 'Oeste'],
+  ['C17', 'Carnicería El Gaucho', 'Castelar', 505, 335, 'Oeste'], ['C18', 'Supermercado Moreno', 'Moreno', 330, 330, 'Oeste'],
+  ['C19', 'Distribuidora Merlo', 'Merlo', 380, 380, 'Oeste'], ['C20', 'Panificadora Haedo', 'Haedo', 570, 355, 'Oeste'],
+  ['C21', 'Mercado Central', 'Tapiales', 610, 410, 'Oeste'], ['C22', 'Farmacia San Justo', 'San Justo', 590, 395, 'Oeste'],
+  ['C23', 'Hipermercado Sur', 'Lanús', 730, 430, 'Sur'], ['C24', 'Cadena Fresco Avellaneda', 'Avellaneda', 758, 405, 'Sur'],
+  ['C25', 'Supermercado Quilmes', 'Quilmes', 800, 470, 'Sur'], ['C26', 'Almacén Lomas', 'Lomas de Zamora', 705, 460, 'Sur'],
+  ['C27', 'Frigorífico Berazategui', 'Berazategui', 835, 520, 'Sur'], ['C28', 'Supermercado La Plata', 'La Plata', 860, 605, 'Sur'],
+  ['C29', 'Mayorista Ezeiza', 'Ezeiza', 620, 540, 'Sur'], ['C30', 'Farmacia Adrogué', 'Adrogué', 700, 500, 'Sur'],
+].map(([id, name, city, x, y, zone]) => ({ id, name, city, x, y, zone }));
+const CUST = Object.fromEntries(CUSTOMERS.map((c) => [c.id, c]));
+
+const CARRIERS = {
+  PROPIA: { name: 'Flota propia', own: true, dwell: 1.0, speed: 1.0 },
+  PLATA: { name: 'Transportes Del Plata', dwell: 1.05, speed: 0.97 },
+  RSUR: { name: 'Logística Ruta Sur', dwell: 1.35, speed: 0.95 },
+  FRIO: { name: 'Frío Express', dwell: 1.1, speed: 1.0 },
+};
+const TYPES = {
+  REFRIGERADO: { label: 'Refrigerado 2–8 °C', lo: 2, hi: 8, set: 4.5, cold: true },
+  CONGELADO: { label: 'Congelado −18 °C', lo: -25, hi: -15, set: -20, cold: true },
+  SECO: { label: 'Carga seca', cold: false },
+};
+const VEHICLE_DEFS = [
+  ['P-01', 'PROPIA', 'REFRIGERADO', 'Martín Sosa', ['C03', 'C04', 'C01', 'C05', 'C02']],
+  ['P-02', 'PROPIA', 'REFRIGERADO', 'Lucía Pérez', ['C10', 'C08', 'C13', 'C12']],
+  ['P-03', 'PROPIA', 'REFRIGERADO', 'Diego Ríos', ['C11', 'C14', 'C09'], { deviate: 1 }],
+  ['P-04', 'PROPIA', 'CONGELADO', 'Carla Méndez', ['C24', 'C23', 'C26', 'C30']],
+  ['P-05', 'PROPIA', 'REFRIGERADO', 'Pablo Ojeda', ['C17', 'C16', 'C20', 'C22'], { fail: 2 }],
+  ['P-06', 'PROPIA', 'SECO', 'Sergio Luna', ['C18', 'C19', 'C15']],
+  ['P-07', 'PROPIA', 'CONGELADO', 'Ana Vera', ['C05', 'C12', 'C08']],
+  ['P-08', 'PROPIA', 'REFRIGERADO', 'Jorge Paz', ['C25', 'C27', 'C28']],
+  ['P-09', 'PROPIA', 'SECO', 'Raúl Benítez', ['C06', 'C07', 'C03']],
+  ['P-10', 'PROPIA', 'REFRIGERADO', 'Elena Duarte', ['C29', 'C30', 'C26', 'C23']],
+  ['T-11', 'PLATA', 'SECO', 'H. Godoy', ['C14', 'C11', 'C09', 'C12']],
+  ['T-12', 'PLATA', 'SECO', 'M. Ferreyra', ['C15', 'C17', 'C16', 'C21'], { stop: 2 }],
+  ['T-13', 'PLATA', 'REFRIGERADO', 'J. Acosta', ['C01', 'C05', 'C04']],
+  ['T-14', 'RSUR', 'SECO', 'R. Molina', ['C23', 'C24', 'C25', 'C27']],
+  ['T-15', 'RSUR', 'SECO', 'F. Ibarra', ['C29', 'C26', 'C30', 'C28']],
+  ['T-16', 'RSUR', 'REFRIGERADO', 'G. Quiroga', ['C22', 'C21', 'C20', 'C19']],
+  ['T-17', 'FRIO', 'REFRIGERADO', 'L. Castro', ['C08', 'C10', 'C13', 'C09'], { cold: 1 }],
+  ['T-18', 'FRIO', 'CONGELADO', 'N. Romero', ['C02', 'C10', 'C12']],
+];
+const COST = { ownKm: 0.58, ownHour: 17, thirdKm: 1.15, thirdStop: 5, thirdBase: 25, waitHour: 14, extraKm: 1.25 };
+
+const ROLES = [
+  { id: 'all', label: 'Todos los roles', channel: '' },
+  { id: 'torre', label: 'Operador de torre', channel: 'Consola' },
+  { id: 'trafico', label: 'Jefe de tráfico', channel: 'App móvil' },
+  { id: 'calidad', label: 'Calidad · cadena de frío', channel: 'WhatsApp' },
+  { id: 'cliente', label: 'Atención al cliente', channel: 'Email + CRM' },
+  { id: 'mant', label: 'Mantenimiento de flota', channel: 'OT en JDE' },
+  { id: 'costos', label: 'Costos y finanzas', channel: 'Email' },
+];
+const ROLE = Object.fromEntries(ROLES.map((r) => [r.id, r]));
+
+// ====================================================================== estado
+let simT = DAY0;
+let speed = 20;
+let tab = 'torre';
+let role = 'all';
+let selected = 'T-17';
+let mapFilter = 'all';
+let entFilter = 'all';
+const ENT_FILTERS = [['all', 'Todas'], ['pending', 'Pendientes'], ['risk', 'En riesgo (ML)'], ['done', 'Realizadas'], ['issues', 'Fuera de ventana o rechazo'], ['mant', 'Afectadas por fallas']];
+const FILT = { mant: 'all', jde: 'all', costos: 'all', alertas: 'all' };
+const FILT_OPTS = {
+  mant: [['all', 'Todas'], ['open', 'Abiertas'], ['closed', 'Cerradas']],
+  jde: [['all', 'Todas'], ['ot', 'Órdenes de mantenimiento'], ['ent', 'Entregas'], ['cost', 'Costos']],
+  costos: [['all', 'Todos'], ['dev', 'Con desvío > 10%'], ['posted', 'Contabilizados']],
+  alertas: [['all', 'Todas'], ['pred', 'Anticipadas'], ['high', 'Críticas y altas'], ['new', 'Sin reconocer']],
+};
+const curFilter = (t) => (t === 'entregas' ? entFilter : FILT[t]);
+const filterSeg = (t) => `<div class="seg">${FILT_OPTS[t].map(([k, l]) => `<button data-filt="${t}:${k}" class="${FILT[t] === k ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+// Atributos de un indicador clicable: destino "pestaña[:filtro][@ancla]"
+const T = (go, label) => `class="tile ${goOn(go)}" data-go="${go}" role="button" tabindex="0" title="${label}" aria-label="${label}"`;
+const incidents = [];
+const alerts = [];
+const alertKeys = new Set();
+const jdeLog = [];
+let alertSeq = 0;
+const workOrders = [];
+let otSeq = 26410;
+const TECHS = ['Ramiro Benítez (móvil 2)', 'Lucía Fernández (móvil 1)', 'Martín Ojeda (móvil 3)'];
+
+// Falla detectada por telemetría → OT de mantenimiento en JDE, sin carga manual
+function createWorkOrder(v, fl) {
+  if (v.state === 'FINALIZADO' || v.state === 'CARGANDO') return null;
+  v.stopUntil = simT + fl.stopMin * 60;
+  v.stopReason = `Falla · ${fl.system}`;
+  v.health = fl.health ?? 1;
+  if (fl.system.startsWith("Motor")) v.coolTarget = 72; // motor apagado durante el auxilio
+  v.failedLeg = v.seg;
+  const affected = v.stops.filter((x) => !x.done).map((x) => x.doco);
+  const ot = {
+    id: otSeq++, v, veh: v.id, system: fl.system, dtc: fl.dtc, symptom: fl.symptom, priority: fl.priority, created: simT,
+    origin: fl.origin || 'Telemetría · ECU J1939', status: 'CREADA', tech: TECHS[workOrders.length % TECHS.length], stopMin: fl.stopMin,
+    parts: fl.parts, laborH: fl.laborH, cost: null, affected, events: [],
+  };
+  ot.events.push({ t: simT, text: `Falla detectada por telemetría: <b>${esc(fl.dtc)}</b>` });
+  ot.events.push({ t: simT, jde: true, text: `<b>OT ${ot.id}</b> creada en JD Edwards (F4801 · tipo correctivo · prioridad ${fl.priority}) con repuestos sugeridos (F3111)` });
+  workOrders.unshift(ot);
+  log('OUT', 'TWR_CreateWorkOrder', 'F4801 · F3111 (módulo de mantenimiento)', `OT ${ot.id} · ${fl.priority} · ${v.id} ${v.plate} · ${fl.system}`);
+  raise(`fail:${v.id}:${ot.id}`, { sev: fl.priority === 'P1' ? 'crit' : 'alta', type: 'Falla de unidad', veh: v.id, wo: ot.id, roles: ['mant', 'trafico', 'torre'],
+    msg: `${v.id}: ${fl.symptom} · ${fl.dtc}. Unidad detenida. OT ${ot.id} (${fl.priority}) generada automáticamente en JDE; ${affected.length} entregas afectadas.` });
+  return ot;
+}
+function updateWorkOrders() {
+  for (const ot of workOrders) {
+    if (ot.status === 'CERRADA') continue;
+    const el = simT - ot.created;
+    if (ot.status === 'CREADA' && el >= 4 * 60) {
+      ot.status = 'ASIGNADA';
+      ot.events.push({ t: simT, text: `Asignada a <b>${esc(ot.tech)}</b> · auxilio en camino` });
+      log('OUT', 'TWR_UpdateWorkOrderStatus', 'F4801', `OT ${ot.id}: asignada a técnico (estado 20)`);
+    }
+    if (ot.status === 'ASIGNADA' && el >= 15 * 60) {
+      ot.status = 'EN_REPARACION';
+      ot.events.push({ t: simT, text: 'Técnico en el lugar: diagnóstico confirmado y reparación en curso' });
+      log('OUT', 'TWR_UpdateWorkOrderStatus', 'F4801', `OT ${ot.id}: en reparación (estado 40)`);
+    }
+    if (ot.status === 'EN_REPARACION' && simT >= ot.v.stopUntil) {
+      ot.status = 'CERRADA';
+      ot.closed = simT;
+      ot.cost = ot.laborH * 26 + ot.parts.reduce((a, [, c]) => a + c, 0);
+      ot.events.push({ t: simT, text: `Unidad liberada: retoma la ruta${ot.v.health < 1 ? ' a velocidad reducida hasta el taller' : ''}` });
+      ot.events.push({ t: simT, jde: true, text: `OT cerrada en JDE con costo real <b>${usd(ot.cost)}</b> (repuestos y mano de obra · F0911)` });
+      log('OUT', 'TWR_CompleteWorkOrder', 'F4801 · F0911', `OT ${ot.id} cerrada · costo real ${usd(ot.cost)}`);
+    }
+  }
+}
+let docoSeq = 448210;
+
+function cong(zone, h) {
+  const bump = (c, w) => Math.max(0, 1 - Math.abs(h - c) / w);
+  switch (zone) {
+    case 'CABA': return Math.min(1, 0.25 + 0.75 * bump(9.2, 1.7) + 0.6 * bump(18, 1.5));
+    case 'Norte': return Math.min(1, 0.15 + 0.7 * bump(8.6, 1.4) + 0.5 * bump(18, 1.5));
+    case 'Oeste': return Math.min(1, 0.15 + 0.55 * bump(8.2, 1.4) + 0.4 * bump(18, 1.5));
+    case 'Sur': return Math.min(1, 0.15 + 0.45 * bump(9, 1.5) + 0.4 * bump(18, 1.5));
+    default: return 0.08;
+  }
+}
+// Velocidad esperada de un tramo: autopista si es largo, urbana si es corto
+function legSpeed(a, b, zone, t, withIncidents = true) {
+  const c = cong(zone, t / 3600);
+  let s = dist(a, b) * KM > 12 ? 58 * (1 - 0.35 * c) : BASE_SPEED[zone] * (1 - 0.45 * c);
+  if (withIncidents) for (const i of incidents) if (t >= i.from && t < i.until && i.zones.includes(zone)) s *= i.factor;
+  return s;
+}
+function speedFactor(zone, t) {
+  let f = 1 - 0.5 * cong(zone, t / 3600);
+  for (const i of incidents) if (t >= i.from && t < i.until && i.zones.includes(zone)) f *= i.factor;
+  return f;
+}
+
+function log(dir, orch, obj, detail) {
+  jdeLog.unshift({ t: simT, dir, orch, obj, detail, ms: Math.round(rnd(70, 240)) });
+  if (jdeLog.length > 200) jdeLog.pop();
+}
+
+// Construcción de la operación del día (pedidos y embarques que vienen de JDE)
+const vehicles = VEHICLE_DEFS.map(([id, carrier, type, driver, stopIds, scn], i) => {
+  const car = CARRIERS[carrier];
+  const path = [DEPOT, ...stopIds.map((s) => CUST[s]), DEPOT];
+  const dep = DAY0 + 15 * 60 + i * 3 * 60;
+  const retKmPlan = dist(path[path.length - 2], DEPOT) * KM;
+  const returnEst = car.own ? retKmPlan * COST.ownKm + (retKmPlan / 50) * COST.ownHour : 0;
+  let t = dep;
+  const stops = [];
+  let plannedKm = 0;
+  for (let k = 1; k < path.length; k++) {
+    const dkm = dist(path[k - 1], path[k]) * KM;
+    plannedKm += dkm;
+    const z = k === path.length - 1 ? 'CD' : path[k].zone;
+    const legSec = (dkm / legSpeed(path[k - 1], path[k], z, t, false)) * 3600;
+    t += legSec;
+    if (k < path.length - 1) {
+      const c = path[k];
+      const open = Math.floor((t - 30 * 60) / 1800) * 1800;
+      const close = Math.ceil((t + 40 * 60) / 900) * 900;
+      stops.push({
+        idx: k, cust: c, doco: docoSeq++, bultos: Math.round(rnd(12, 90)), kg: Math.round(rnd(180, 1400)), legPlannedKm: dkm, legPlannedSec: legSec,
+        planned: t, open, close, status: 'PENDIENTE', arr: null, done: null, eta: null, etaMl: null, risk: 0,
+        est: 0, real: null, costState: 'Estimado', causes: [], tempExcursion: false, rejected: false,
+        legKm: 0, legSec: 0, serviceSec: 0,
+      });
+      t += 15 * 60;
+    }
+  }
+  const plannedH = (t - dep) / 3600;
+  const routeEst = car.own ? plannedKm * COST.ownKm + plannedH * COST.ownHour : COST.thirdBase + plannedKm * COST.thirdKm + stops.length * COST.thirdStop;
+  const legSum = stops.reduce((s, x) => s + x.legPlannedKm, 0);
+  stops.forEach((s) => {
+    s.est = car.own
+      ? s.legPlannedKm * COST.ownKm + ((s.legPlannedSec + 15 * 60) / 3600) * COST.ownHour + returnEst / stops.length
+      : routeEst * (0.6 * (s.legPlannedKm / legSum) + 0.4 / stops.length);
+  });
+  const ty = TYPES[type];
+  return {
+    id, carrier, car, type, ty, driver, plate: `${'AB'[i % 2]}${'CDEFG'[i % 5]} ${100 + i * 37} ${'HJKLM'[i % 5]}${'NPRST'[(i * 3) % 5]}`,
+    path, stops, dep, plannedKm, plannedEnd: t, routeEst, returnEst, shipment: 71400 + i, load: 9300 + Math.floor(i / 2),
+    state: 'CARGANDO', seg: 1, s: 0, pos: { x: DEPOT.x, y: DEPOT.y }, kmReal: 0, speedKmh: 0, health: 1,
+    temp: ty.cold ? ty.set + rnd(-0.6, 0.6) : null, tempTarget: ty.cold ? ty.set : null, tempHist: [], excursionMin: 0, inRangeMin: 0, totalMin: 0,
+    coolant: 88, coolTarget: 88, trail: [{ x: DEPOT.x, y: DEPOT.y }], off: 0, offSince: null,
+    stopUntil: 0, stopReason: '', serviceUntil: 0, endT: null, returnCost: 0,
+    scn: { ...(scn || {}) }, done: {}, lastHist: 0,
+  };
+});
+const VEH = Object.fromEntries(vehicles.map((v) => [v.id, v]));
+log('IN', 'TWR_GetShipments', 'F4211 · F4215 · F4960', `${vehicles.length} embarques y ${vehicles.reduce((s, v) => s + v.stops.length, 0)} pedidos de venta del día`);
+log('IN', 'TWR_GetFreightRates', 'Tarifas de flete', 'Tarifas de transportistas y costos estándar para el costo estimado');
+
+// ====================================================================== simulación
+function raise(key, a) {
+  if (alertKeys.has(key)) return null;
+  alertKeys.add(key);
+  const al = { id: ++alertSeq, key, t: simT, ack: false, ...a };
+  alerts.unshift(al);
+  if (alerts.length > 300) alerts.pop();
+  if (role === 'all' ? ['alta', 'crit'].includes(al.sev) : al.roles.includes(role)) toast(al);
+  return al;
+}
+
+function completeStop(v, st) {
+  st.done = simT;
+  st.serviceSec = st.done - st.arr;
+  const late = st.arr > st.close;
+  // Rechazo parcial si la carga sufrió una excursión de temperatura prolongada
+  if (v.ty.cold && v.excursionMin > 15 && !st.rejected) {
+    st.rejected = true;
+    st.tempExcursion = true;
+    st.causes.push('Rechazo por temperatura');
+  }
+  st.status = st.rejected ? 'RECHAZO_PARCIAL' : late ? 'ENTREGADA_TARDE' : 'ENTREGADA';
+  // Costo real de la entrega
+  let real;
+  if (v.car.own) {
+    const slow = st.legKm > 0 && st.legKm / Math.max(st.legSec / 3600, 0.05) < 20 ? 1.15 : 1;
+    real = st.legKm * COST.ownKm * slow + ((st.legSec + st.serviceSec) / 3600) * COST.ownHour + v.returnEst / v.stops.length;
+  } else {
+    const share = st.est;
+    const wait = Math.max(0, st.serviceSec - 20 * 60) / 3600 * COST.waitHour;
+    const extra = Math.max(0, st.legKm - st.legPlannedKm * 1.05) * COST.extraKm;
+    real = share + wait + extra;
+  }
+  if (st.serviceSec > 20 * 60 * (v.car.own ? 1.2 : 1)) st.causes.push('Espera en cliente');
+  if (st.legSec > st.legPlannedSec * 1.25 + 5 * 60) st.causes.push(v.failedLeg === v.seg ? 'Falla de unidad' : st.legKm > st.legPlannedKm * 1.1 ? 'Desvío de ruta' : 'Congestión / tiempo de viaje');
+  if (st.rejected) real += st.est * 0.4;
+  st.real = real;
+  st.costState = 'Real parcial';
+  log('OUT', 'TWR_ConfirmDelivery', 'P4205 · F4211', `Pedido ${st.doco} SO · ${st.cust.name} · ${st.rejected ? 'entrega con rechazo parcial' : late ? 'entregado fuera de ventana' : 'entregado'} ${hhmm(st.done)}`);
+  if (v.ty.cold) log('OUT', 'TWR_AttachTempLog', 'Media object del pedido', `Registro de temperatura de la entrega ${st.doco} (${v.excursionMin > 0 ? 'con excursión' : 'en rango'})`);
+  if (late) raise(`late:${st.doco}`, { sev: 'media', type: 'Entrega fuera de ventana', veh: v.id, roles: ['cliente', 'torre'], msg: `${st.cust.name} (pedido ${st.doco}) recibió a las ${hhmm(st.arr)}; la ventana cerraba ${hhmm(st.close)}.` });
+  if (st.rejected) raise(`rej:${st.doco}`, { sev: 'alta', type: 'Rechazo parcial', veh: v.id, roles: ['calidad', 'cliente', 'costos'], msg: `${st.cust.name} rechazó parte del pedido ${st.doco} por excursión de temperatura (${num(v.excursionMin)} min fuera de rango). Se genera devolución y reentrega.` });
+}
+
+function finishRoute(v) {
+  v.state = 'FINALIZADO';
+  v.endT = simT;
+  const retLegKm = v.retKm || 0;
+  const retH = (v.retSec || 0) / 3600;
+  v.returnCost = v.car.own ? retLegKm * COST.ownKm + retH * COST.ownHour : 0;
+  v.stops.forEach((s) => { if (s.real != null) { s.real += (v.returnCost - v.returnEst) / v.stops.length; s.costState = 'Contabilizado'; } });
+  const realTot = v.stops.reduce((s, x) => s + (x.real || 0), 0);
+  log('OUT', 'TWR_PostFreightCost', 'F4211 (flete) · F0911', `Embarque ${v.shipment}: costo real ${usd(realTot)} vs estimado ${usd(v.routeEst)} distribuido en ${v.stops.length} pedidos`);
+  if (!v.car.own) log('OUT', 'TWR_CreateCarrierVoucher', 'F0411', `${v.car.name}: comprobante a pagar ${usd(realTot)} conciliado con tarifa`);
+}
+
+function step(dt) {
+  simT += dt;
+  const dtMin = dt / 60;
+  for (const v of vehicles) {
+    // temperatura del equipo de frío
+    if (v.ty.cold) {
+      const k = v.tempTarget > 10 ? 0.012 : 0.09;
+      v.temp += (v.tempTarget - v.temp) * Math.min(1, k * dtMin) + gauss() * 0.04 * Math.sqrt(dtMin);
+      if (v.state !== 'CARGANDO' && v.state !== 'FINALIZADO') {
+        v.totalMin += dtMin;
+        if (v.temp > v.ty.hi || v.temp < v.ty.lo) v.excursionMin += dtMin; else v.inRangeMin += dtMin;
+      }
+    }
+    v.coolant += (v.coolTarget - v.coolant) * Math.min(1, 0.06 * dtMin);
+    if (simT - v.lastHist >= 60) {
+      v.lastHist = simT;
+      v.tempHist.push({ t: simT, v: v.temp, c: v.coolant });
+      if (v.tempHist.length > 420) v.tempHist.shift();
+    }
+
+    if (v.state === 'CARGANDO') {
+      if (simT >= v.dep) {
+        v.state = 'EN_RUTA';
+        log('OUT', 'TWR_UpdateShipmentStatus', 'F4215', `Embarque ${v.shipment} (${v.id}) despachado ${hhmm(simT)} · ${v.stops.length} entregas`);
+      }
+      continue;
+    }
+    if (v.state === 'FINALIZADO') continue;
+
+    if (v.state === 'EN_CLIENTE') {
+      if (simT >= v.serviceUntil) {
+        const st = v.stops[v.seg - 1];
+        completeStop(v, st);
+        v.lastService = simT;
+        if (v.scn.cold === v.seg && !v.done.cold) startCold(v);
+        v.seg++;
+        v.s = 0;
+        v.state = 'EN_RUTA';
+      }
+      continue;
+    }
+
+    // EN_RUTA o DETENIDO
+    if (simT < v.stopUntil) { v.state = 'DETENIDO'; v.speedKmh = 0; addLeg(v, 0, dt); continue; }
+    if (v.state === 'DETENIDO') { v.state = 'EN_RUTA'; if (v.stopReason.startsWith('Falla')) v.coolTarget = 88; v.stopReason = ''; }
+
+    const a = v.path[v.seg - 1], b = v.path[v.seg];
+    const zone = v.seg === v.path.length - 1 ? 'CD' : b.zone;
+    const target = legSpeed(a, b, zone, simT) * v.car.speed * v.health * (0.93 + 0.07 * Math.sin(simT / 97 + v.dep));
+    v.speedKmh += (target - v.speedKmh) * Math.min(1, 0.25 * dtMin + 0.1);
+    const segLen = dist(a, b);
+    const move = (v.speedKmh * dt) / 3600 / KM;
+    v.s += move;
+    const frac = Math.min(1, v.s / segLen);
+
+    // desvío de ruta
+    let off = 0, devFactor = 0;
+    if (v.scn.deviate === v.seg && frac > 0.25 && frac < 0.8) { off = 42 * Math.sin((Math.PI * (frac - 0.25)) / 0.55); devFactor = 0.45; v.done.deviate = true; }
+    v.off = off;
+    const km = move * KM * (1 + devFactor);
+    v.kmReal += km;
+    addLeg(v, km, dt);
+
+    // parada no planificada
+    if (v.scn.stop === v.seg && frac >= 0.5 && !v.done.stop) { v.done.stop = true; v.stopUntil = simT + 34 * 60; v.stopReason = 'Parada no planificada'; v.unplannedFrom = simT; }
+    // falla mecánica progresiva
+    if (v.scn.fail === v.seg && frac >= 0.35 && !v.done.failStart) { v.done.failStart = true; v.coolTarget = 112; }
+    if (v.coolant > 104 && !v.done.failStop) {
+      v.done.failStop = true;
+      createWorkOrder(v, { system: 'Motor y refrigeración', dtc: 'DTC J1939 SPN 110 FMI 0 · temperatura de refrigerante alta', symptom: `temperatura de motor ${num(v.coolant, 0)} °C`,
+        priority: 'P1', stopMin: 40, health: 0.82, parts: [['Termostato', 60], ['Refrigerante 20 L', 100], ['Correa poly-V', 55]], laborH: 1.5 });
+    }
+
+    // posición
+    const nx = b.x - a.x, ny = b.y - a.y, L = Math.hypot(nx, ny) || 1;
+    v.pos = { x: a.x + nx * frac + (-ny / L) * off, y: a.y + ny * frac + (nx / L) * off };
+    const lt = v.trail[v.trail.length - 1];
+    if (Math.hypot(v.pos.x - lt.x, v.pos.y - lt.y) > 4) { v.trail.push({ ...v.pos }); if (v.trail.length > 600) v.trail.shift(); }
+
+    if (frac >= 1) {
+      if (v.seg < v.path.length - 1) {
+        const st = v.stops[v.seg - 1];
+        st.arr = simT;
+        st.status = 'EN_CLIENTE';
+        v.state = 'EN_CLIENTE';
+        v.serviceUntil = simT + 15 * 60 * v.car.dwell * rnd(0.8, 1.45);
+        if (v.ty.cold) v.temp += v.type === 'CONGELADO' ? 2.4 : 1.3; // apertura de puertas
+        v.speedKmh = 0;
+      } else {
+        finishRoute(v);
+      }
+    }
+  }
+  updateWorkOrders();
+  evaluateAlerts();
+}
+
+function addLeg(v, km, dt) {
+  if (v.seg <= v.stops.length) { const st = v.stops[v.seg - 1]; st.legKm += km; st.legSec += dt; }
+  else { v.retKm = (v.retKm || 0) + km; v.retSec = (v.retSec || 0) + dt; }
+}
+
+function startCold(v) {
+  v.done.cold = true;
+  v.tempTarget = 21; // falla del compresor del equipo de frío
+}
+
+// ====================================================================== pronóstico (GPS vs ML)
+function forecast() {
+  for (const v of vehicles) {
+    if (v.state === 'FINALIZADO') continue;
+    let tG = simT, tM = simT, from = v.pos, i = v.seg;
+    if (v.state === 'CARGANDO') { tG = tM = Math.max(simT, v.dep); from = DEPOT; i = 1; }
+    if (v.state === 'EN_CLIENTE') {
+      const rem = Math.max(0, v.serviceUntil - simT);
+      tG += rem; tM += rem; from = v.path[v.seg]; i = v.seg + 1;
+    }
+    if (simT < v.stopUntil) { tM += v.stopUntil - simT; tG += 0; }
+    for (; i < v.path.length - 1; i++) {
+      const p = v.path[i], st = v.stops[i - 1];
+      const dkm = dist(from, p) * KM;
+      const prev = i === v.seg ? v.path[i - 1] : v.path[i - 1];
+      const gpsSpeed = i === v.seg && v.speedKmh > 5 && v.state === 'EN_RUTA' ? v.speedKmh : (dist(prev, p) * KM > 12 ? 58 : BASE_SPEED[p.zone]);
+      tG += (dkm / gpsSpeed) * 3600;
+      const mid = tM + (dkm / BASE_SPEED[p.zone]) * 1800;
+      const mlSpeed = legSpeed(prev, p, p.zone, mid) * v.car.speed * v.health;
+      tM += (dkm / mlSpeed) * 3600;
+      st.eta = tG; st.etaMl = tM;
+      st.risk = sigmoid((tM - st.close + 300) / 480);
+      st.drivers = mlDrivers(v, st, p, mid);
+      tG += 15 * 60; tM += 17 * 60 * v.car.dwell;
+      from = p;
+    }
+    // costo proyectado de la ruta
+    const doneReal = v.stops.reduce((s, x) => s + (x.real || 0), 0);
+    const doneEst = v.stops.filter((x) => x.real != null).reduce((s, x) => s + x.est, 0);
+    const pendEst = v.stops.filter((x) => x.real == null).reduce((s, x) => s + x.est, 0);
+    v.projCost = doneReal + pendEst * (doneEst ? Math.max(1, doneReal / doneEst) : 1);
+  }
+}
+function mlDrivers(v, st, p, t) {
+  const d = [];
+  const c = cong(p.zone, t / 3600);
+  if (c > 0.5) d.push(`congestión habitual en ${p.zone} a las ${hhmm(t)}`);
+  if (v.car.dwell > 1.2) d.push(`${v.car.name}: permanencia en cliente +${num((v.car.dwell - 1) * 100)}%`);
+  if (incidents.some((i) => t < i.until && i.zones.includes(p.zone))) d.push('corte de tránsito reportado');
+  if (v.health < 1) d.push('unidad con velocidad reducida tras falla');
+  if (simT < v.stopUntil) d.push('unidad detenida');
+  return d;
+}
+
+// ====================================================================== reglas de alerta
+function evaluateAlerts() {
+  for (const v of vehicles) {
+    if (v.state === 'CARGANDO' || v.state === 'FINALIZADO') continue;
+    for (const st of v.stops) {
+      if (st.status !== 'PENDIENTE' || st.risk < 0.65) continue;
+      raise(`risk:${st.doco}`, { sev: st.risk >= 0.85 ? 'alta' : 'media', type: 'Retraso anticipado (ML)', veh: v.id, roles: ['cliente', 'torre'],
+        msg: `${st.cust.name} (pedido ${st.doco}): el modelo estima llegada ${hhmm(st.etaMl)} y la ventana cierra ${hhmm(st.close)}. Riesgo ${pct(st.risk)}. El GPS solo indicaría ${hhmm(st.eta)}.` });
+    }
+    if (v.off * KM > 0.5) {
+      v.offSince = v.offSince ?? simT;
+      if (simT - v.offSince > 120) raise(`dev:${v.id}`, { sev: 'media', type: 'Desvío de ruta', veh: v.id, roles: ['trafico', 'torre'], msg: `${v.id} se apartó ${num(v.off * KM, 1)} km de la ruta planificada hacia ${v.path[v.seg].name}. Patrón no habitual para el chofer ${v.driver}.` });
+    } else v.offSince = null;
+    if (v.stopReason === 'Parada no planificada' && simT - v.unplannedFrom > 10 * 60) raise(`stop:${v.id}`, { sev: 'alta', type: 'Parada no planificada', veh: v.id, roles: ['trafico', 'torre'], msg: `${v.id} (${v.car.name}) lleva ${mins(simT - v.unplannedFrom)} min detenido fuera de un punto de entrega. Contactar al transportista.` });
+    if (v.ty.cold) {
+      const h = v.tempHist.slice(-10);
+      if (h.length >= 10 && v.temp <= v.ty.hi && v.state !== 'EN_CLIENTE' && simT - (v.lastService || 0) > 3 * 60 && h.every((p, i) => i === 0 || p.v >= h[i - 1].v - 0.05)) {
+        const slope = (h[h.length - 1].v - h[0].v) / (h.length - 1);
+        const eta = slope > 0.02 ? (v.ty.hi - v.temp) / slope : null;
+        if (eta !== null && eta < 30) raise(`coldpred:${v.id}`, { sev: 'pred', type: 'Excursión de frío anticipada', veh: v.id, roles: ['calidad', 'torre'], msg: `${v.id}: temperatura de caja ${num(v.temp, 1)} °C en ascenso sostenido. Superaría ${v.ty.hi} °C en ~${num(eta)} min. Posible falla de compresor.` });
+      }
+      if (v.temp > v.ty.hi + 0.3 && v.excursionMin > 4) raise(`cold:${v.id}`, { sev: 'alta', type: 'Temperatura fuera de rango', veh: v.id, roles: ['calidad', 'torre', 'cliente'], msg: `${v.id}: ${num(v.temp, 1)} °C (rango ${v.ty.lo} a ${v.ty.hi} °C) desde hace ${num(v.excursionMin)} min. Evaluar retención de la carga antes de la próxima entrega.` });
+    }
+    if (!v.done.failStop && v.coolant > 96) {
+      const c = v.tempHist.slice(-6).map((p) => p.c);
+      if (c.length === 6 && c.every((x, i) => i === 0 || x > c[i - 1])) {
+        const slope = (c[5] - c[0]) / 5;
+        raise(`coolpred:${v.id}`, { sev: 'pred', type: 'Falla de motor anticipada', veh: v.id, roles: ['mant', 'torre'],
+          msg: `${v.id}: temperatura de motor ${num(v.coolant, 0)} °C en ascenso sostenido (+${num(slope, 1)} °C/min). Falla probable en ~${num(Math.max(1, (104 - v.coolant) / slope))} min: se prepara la OT y el auxilio.` });
+      }
+    }
+    if (v.projCost > v.routeEst * 1.15 && v.stops.some((s) => s.real != null)) raise(`cost:${v.id}`, { sev: 'media', type: 'Desvío de costo', veh: v.id, roles: ['costos'], msg: `Embarque ${v.shipment} (${v.id}): costo real proyectado ${usd(v.projCost)} vs estimado JDE ${usd(v.routeEst)} (+${pct(v.projCost / v.routeEst - 1)}).` });
+  }
+}
+
+// ====================================================================== escenarios
+const SCENARIOS = [
+  { id: 'jam', label: 'Corte en Panamericana', sub: 'Congestión severa Norte y CABA durante 60 min', run: () => { incidents.push({ from: simT, until: simT + 3600, zones: ['Norte', 'CABA'], factor: 0.45, label: 'Corte en Panamericana' }); raise(`jam:${simT}`, { sev: 'media', type: 'Evento de tránsito', veh: '—', roles: ['torre', 'trafico'], msg: 'Corte total en Panamericana km 22: el modelo recalcula los ETA de Norte y CABA.' }); } },
+  { id: 'cold', label: 'Falla de frío en T-17', sub: 'Compresor del equipo refrigerado de Frío Express', run: () => startCold(VEH['T-17']) },
+  { id: 'dev', label: 'Desvío de ruta en P-03', sub: 'Se aparta del recorrido planificado', run: () => { VEH['P-03'].scn.deviate = VEH['P-03'].seg; } },
+  { id: 'stop', label: 'Parada no planificada en T-12', sub: 'Transportista detenido fuera de ruta', run: () => { const v = VEH['T-12']; v.done.stop = true; v.stopUntil = simT + 34 * 60; v.stopReason = 'Parada no planificada'; v.unplannedFrom = simT; } },
+  { id: 'tire', label: 'Pinchadura en P-08', sub: 'Pérdida de presión (TPMS) → OT P2 en JDE', run: () => {
+    const v = VEH['P-08'];
+    if (v.done.tire) return;
+    v.done.tire = true;
+    createWorkOrder(v, { system: 'Neumáticos', dtc: 'TPMS · presión 82 psi en rueda trasera izquierda', symptom: 'pérdida rápida de presión de neumático', priority: 'P2', stopMin: 25, parts: [['Neumático 295/80R22.5', 420]], laborH: 0.8 });
+  } },
+  { id: 'fail', label: 'Falla de motor en P-05', sub: 'Sobretemperatura → OT de mantenimiento en JDE', run: () => { VEH['P-05'].coolTarget = 112; VEH['P-05'].done.failStart = true; } },
+];
+// Programación automática para que la demo cuente la historia sola
+const AUTO = [{ t: 8 * 3600 + 40 * 60, id: 'jam' }];
+const autoDone = new Set();
+
+// ====================================================================== vista: helpers
+function toast(a) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `${sevBadge(a.sev)} <b>${esc(a.type)}</b> · ${esc(a.veh)}<div style="margin-top:4px">${esc(a.msg)}</div><div class="sub" style="margin-top:4px">→ ${a.roles.map((r) => esc(ROLE[r].label)).join(' · ')}</div>`;
+  $('#toasts').appendChild(el);
+  while ($('#toasts').children.length > 3) $('#toasts').firstChild.remove();
+  setTimeout(() => el.remove(), 6500);
+}
+function sevBadge(s) { return { crit: '<span class="b crit">▲ Crítica</span>', alta: '<span class="b crit">▲ Alta</span>', media: '<span class="b warn">◆ Media</span>', pred: '<span class="b pred">◭ Predictiva</span>' }[s] || `<span class="b">${esc(s)}</span>`; }
+const otShown = () => workOrders.filter((o) => FILT.mant === 'all' || (FILT.mant === 'open' ? o.status !== 'CERRADA' : o.status === 'CERRADA'));
+function otStatus(o) {
+  return { CREADA: '<span class="b info">Creada en JDE</span>', ASIGNADA: '<span class="b warn">Asignada · auxilio en camino</span>', EN_REPARACION: '<span class="b or">En reparación</span>', CERRADA: '<span class="b good">✓ Cerrada en JDE</span>' }[o.status];
+}
+function stateBadge(v) {
+  return { CARGANDO: '<span class="b">Cargando en CD</span>', EN_RUTA: '<span class="b good">● En ruta</span>', EN_CLIENTE: '<span class="b info">■ En cliente</span>', DETENIDO: '<span class="b crit">■ Detenido</span>', FINALIZADO: '<span class="b">✓ Finalizado</span>' }[v.state];
+}
+function stopBadge(st) {
+  return { PENDIENTE: '<span class="b">Pendiente</span>', EN_CLIENTE: '<span class="b info">En cliente</span>', ENTREGADA: '<span class="b good">✓ Entregada</span>', ENTREGADA_TARDE: '<span class="b warn">✓ Fuera de ventana</span>', RECHAZO_PARCIAL: '<span class="b crit">✕ Rechazo parcial</span>' }[st.status];
+}
+function riskBadge(p) { return p >= 0.85 ? `<span class="b crit">${pct(p)}</span>` : p >= 0.65 ? `<span class="b or">${pct(p)}</span>` : p >= 0.35 ? `<span class="b warn">${pct(p)}</span>` : `<span class="b good">${pct(p)}</span>`; }
+const carrierBadge = (v) => (v.car.own ? '<span class="b good">Propia</span>' : `<span class="b or">${esc(v.car.name)}</span>`);
+const visibleAlert = (a) => role === 'all' || a.roles.includes(role);
+function hbars(items, fmt) {
+  const mx = Math.max(...items.map((i) => i.value), 1);
+  return `<div class="hbars">${items.map((i) => `<div class="hbar" data-tip="${esc(i.tip || '')}"><span class="lab">${esc(i.label)}</span><span class="track"><span class="fill" style="display:block;width:${Math.max(1, (i.value / mx) * 100)}%;background:${i.color || 'var(--cyan)'}"></span></span><span class="val">${esc(fmt(i.value))}</span></div>`).join('')}</div>`;
+}
+function spark(vals, { w = 110, h = 26, lo, hi, color = 'var(--cyan)', band } = {}) {
+  const v = vals.filter((x) => x != null);
+  if (v.length < 2) return '';
+  const mn = Math.min(...v, band ? band[0] : Infinity), mx = Math.max(...v, band ? band[1] : -Infinity);
+  const a = lo ?? mn, b = hi ?? mx, pad = (b - a) * 0.1 || 1;
+  const y = (x) => h - 2 - ((x - (a - pad)) / (b - a + 2 * pad)) * (h - 4);
+  const d = v.map((x, i) => `${i ? 'L' : 'M'}${((i / (v.length - 1)) * (w - 2) + 1).toFixed(1)},${y(x).toFixed(1)}`).join('');
+  const bandR = band ? `<rect x="0" y="${y(band[1])}" width="${w}" height="${Math.max(1, y(band[0]) - y(band[1]))}" fill="rgba(34,211,139,.10)"/>` : '';
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">${bandR}<path d="${d}" fill="none" stroke="${color}" stroke-width="1.7"/></svg>`;
+}
+function tempChart(v, W = 520, H = 170) {
+  const pts = v.tempHist.slice(-240);
+  if (pts.length < 2) return '<div class="empty">Sin lecturas todavía</div>';
+  const m = { l: 34, r: 8, t: 8, b: 20 };
+  const lo = Math.min(v.ty.lo - 2, ...pts.map((p) => p.v)), hi = Math.max(v.ty.hi + 2, ...pts.map((p) => p.v));
+  const x = (i) => m.l + (i / (pts.length - 1)) * (W - m.l - m.r);
+  const y = (t) => m.t + (1 - (t - lo) / (hi - lo)) * (H - m.t - m.b);
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join('');
+  const out = pts.some((p) => p.v > v.ty.hi || p.v < v.ty.lo);
+  let ticks = '';
+  for (let k = 0; k <= 4; k++) { const t = lo + ((hi - lo) * k) / 4; ticks += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="rgba(120,170,255,.10)"/><text x="${m.l - 5}" y="${y(t) + 3}" text-anchor="end" fill="#7d8db0" font-size="10">${num(t, 0)}°</text>`; }
+  const xl = [0, Math.floor(pts.length / 2), pts.length - 1].map((i) => `<text x="${x(i)}" y="${H - 5}" text-anchor="${i === 0 ? 'start' : i === pts.length - 1 ? 'end' : 'middle'}" fill="#7d8db0" font-size="10">${hhmm(pts[i].t)}</text>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">${ticks}<rect x="${m.l}" y="${y(v.ty.hi)}" width="${W - m.l - m.r}" height="${y(v.ty.lo) - y(v.ty.hi)}" fill="rgba(34,211,139,.08)"/><line x1="${m.l}" x2="${W - m.r}" y1="${y(v.ty.hi)}" y2="${y(v.ty.hi)}" stroke="var(--green)" stroke-dasharray="4 4" opacity=".6"/>${xl}<path d="${d}" fill="none" stroke="${out ? 'var(--red)' : 'var(--cyan)'}" stroke-width="2"/></svg>`;
+}
+
+// ====================================================================== mapa
+const RIVER = '760,0 1000,0 1000,640 930,640 880,560 840,470 800,400 790,330 770,240 745,140 740,60';
+const ROADS = [
+  ['Panamericana', '300,120 420,170 540,215 640,268 715,318'], ['Acceso Oeste', '150,300 330,330 470,345 570,355 690,365 735,345'],
+  ['Gral. Paz', '690,262 650,300 640,360 660,420 720,440'], ['Riccheri', '620,540 650,450 700,400'], ['Bs. As. – La Plata', '765,365 800,440 835,520 860,605'],
+  ['Camino del Buen Ayre', '330,140 310,250 330,330 380,380 470,470 620,540'], ['Ruta 9', '300,120 430,70'], ['Acceso Norte – Tigre', '540,215 590,140'],
+];
+function buildMap(el) {
+  el.innerHTML = `<svg viewBox="0 0 1000 640" id="mapsvg" role="img" aria-label="Mapa del AMBA con la flota en tiempo real">
+    <defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="rgba(120,170,255,.05)"/></pattern></defs>
+    <rect width="1000" height="640" fill="var(--land)"/><rect width="1000" height="640" fill="url(#grid)"/>
+    <polygon points="${RIVER}" fill="var(--water)"/><text x="905" y="250" fill="rgba(120,170,255,.35)" font-size="13" font-weight="700" text-anchor="middle" transform="rotate(68 905 250)">RÍO DE LA PLATA</text>
+    <text class="zone-lbl" x="560" y="110">NORTE</text><text class="zone-lbl" x="690" y="300" text-anchor="end">CABA</text><text class="zone-lbl" x="360" y="440">OESTE</text><text class="zone-lbl" x="640" y="600">SUR</text>
+    ${ROADS.map(([n, p]) => `<polyline points="${p}" fill="none" stroke="var(--road)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><title>${n}</title></polyline>`).join('')}
+    <g id="routes"></g><g id="trails"></g>
+    <g id="custs">${CUSTOMERS.map((c) => `<g><circle id="cu-${c.id}" cx="${c.x}" cy="${c.y}" r="4.5" fill="#7d8db0" stroke="#071226" stroke-width="1.5"/><text class="city-lbl" x="${c.x + 7}" y="${c.y + 3}">${esc(c.city)}</text></g>`).join('')}</g>
+    <g><rect x="${DEPOT.x - 13}" y="${DEPOT.y - 13}" width="26" height="26" rx="6" fill="var(--panel2)" stroke="var(--cyan)" stroke-width="2"/><text x="${DEPOT.x}" y="${DEPOT.y + 4}" text-anchor="middle" fill="var(--cyan)" font-size="11" font-weight="800">CD</text><text class="city-lbl" x="${DEPOT.x - 18}" y="${DEPOT.y - 18}" style="fill:var(--ink2);font-size:11px;font-weight:700">CD Pilar</text></g>
+    <g id="vehs"></g>
+  </svg>
+  <div class="mapfilters" id="mapf">${[['all', 'Toda la flota'], ['own', 'Propia'], ['third', 'Tercerizada'], ['cold', 'Con frío'], ['alert', 'Con alertas']].map(([k, l]) => `<button class="chip ${mapFilter === k ? 'on' : ''}" data-f="${k}">${l}</button>`).join('')}</div>
+  <div class="maplegend"><span><i style="background:var(--green)"></i>Flota propia</span><span><i style="background:var(--orange)"></i>Tercerizada</span><span><i style="background:var(--red)"></i>Con alerta</span><span><i style="background:#7d8db0"></i>Entrega pendiente</span><span><i style="background:var(--green);opacity:.6"></i>Entregada</span><span>– – ruta planificada · ─ recorrido real</span></div>`;
+  el.querySelector('#mapf').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; mapFilter = b.dataset.f; el.querySelectorAll('#mapf .chip').forEach((x) => x.classList.toggle('on', x === b)); drawMap(); };
+  el.querySelector('#vehs').addEventListener('click', (e) => { const g = e.target.closest('.veh'); if (g) { selected = g.dataset.id; render(); } });
+}
+function activeAlertVeh() { return new Set(alerts.filter((a) => !a.ack && ['alta', 'crit'].includes(a.sev) && visibleAlert(a) && simT - a.t < 3 * 3600).map((a) => a.veh)); }
+function mapVisible(v, hot) {
+  if (mapFilter === 'own') return v.car.own;
+  if (mapFilter === 'third') return !v.car.own;
+  if (mapFilter === 'cold') return v.ty.cold;
+  if (mapFilter === 'alert') return hot.has(v.id);
+  return true;
+}
+function drawMap() {
+  const svg = $('#mapsvg');
+  if (!svg) return;
+  const hot = activeAlertVeh();
+  const vis = vehicles.filter((v) => mapVisible(v, hot));
+  $('#routes', svg).innerHTML = vis.map((v) => `<polyline points="${v.path.map((p) => `${p.x},${p.y}`).join(' ')}" fill="none" stroke="${v.car.own ? 'var(--green)' : 'var(--orange)'}" stroke-width="${v.id === selected ? 2.2 : 1.1}" stroke-dasharray="5 6" opacity="${v.id === selected ? 0.85 : 0.22}"/>`).join('');
+  $('#trails', svg).innerHTML = vis.map((v) => `<polyline points="${[...v.trail, v.pos].map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}" fill="none" stroke="${v.car.own ? 'var(--green)' : 'var(--orange)'}" stroke-width="${v.id === selected ? 3 : 2}" opacity="${v.id === selected ? 0.95 : 0.55}" stroke-linecap="round" stroke-linejoin="round"/>`).join('');
+  const stStatus = {};
+  for (const v of vehicles) for (const s of v.stops) { const prev = stStatus[s.cust.id]; if (!prev || s.status === 'PENDIENTE' || s.status === 'EN_CLIENTE') stStatus[s.cust.id] = s; }
+  for (const c of CUSTOMERS) {
+    const s = stStatus[c.id], el = svg.getElementById('cu-' + c.id);
+    if (!s || !el) continue;
+    el.setAttribute('fill', s.status === 'RECHAZO_PARCIAL' ? 'var(--red)' : s.status === 'ENTREGADA_TARDE' ? 'var(--yellow)' : s.status === 'ENTREGADA' ? 'rgba(34,211,139,.65)' : s.status === 'EN_CLIENTE' ? 'var(--blue)' : s.risk >= 0.65 ? 'var(--orange)' : '#7d8db0');
+  }
+  // Los marcadores se actualizan en el lugar para no perder clics
+  const layer = $('#vehs', svg);
+  for (const v of vehicles) {
+    let g = layer.querySelector(`[data-id="${v.id}"]`);
+    if (!g) { g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); g.setAttribute('class', 'veh'); g.setAttribute('data-id', v.id); layer.appendChild(g); }
+    g.style.display = vis.includes(v) ? '' : 'none';
+    g.setAttribute('transform', `translate(${v.pos.x.toFixed(1)},${v.pos.y.toFixed(1)})`);
+    const col = hot.has(v.id) ? 'var(--red)' : v.car.own ? 'var(--green)' : 'var(--orange)';
+    const sel = v.id === selected;
+    const sig = `${col}|${sel}|${hot.has(v.id)}|${v.state === 'DETENIDO'}`;
+    if (g.getAttribute('data-sig') !== sig) {
+      g.setAttribute('data-sig', sig);
+      g.innerHTML = `${hot.has(v.id) ? '<circle class="pulse" r="9" fill="none" stroke="var(--red)" stroke-width="2"/>' : ''}
+        ${sel ? '<circle r="16" fill="none" stroke="#fff" stroke-width="1.5" opacity=".8"/>' : ''}
+        <rect x="-15" y="-9" width="30" height="18" rx="5" fill="${col}" stroke="#071226" stroke-width="1.5"/>
+        <text x="0" y="3.6" text-anchor="middle">${v.id.replace('-', '')}</text>
+        ${v.state === 'DETENIDO' ? '<text class="lbl" x="18" y="-8" style="fill:var(--red)">■</text>' : ''}`;
+    }
+    g.setAttribute('data-tip', `<b>${esc(v.id)} · ${esc(v.car.name)}</b><div>${esc(v.ty.label)} · ${esc(v.driver)}</div><div>${num(v.speedKmh)} km/h${v.temp != null ? ` · ${num(v.temp, 1)} °C` : ''}</div>`);
+  }
+}
+
+// ====================================================================== vistas
+const view = $('#view');
+function header(title, sub) {
+  const r = ROLE[role];
+  return `<div class="hero"><div><h1>${title}</h1><p>${sub}</p></div>
+    <div class="rolebar">Vista: <b>${esc(r.label)}</b>${role === 'all' ? ' · todas las alertas' : ` · recibe alertas por <b>${esc(r.channel)}</b>`}</div></div>`;
+}
+const goOn = (g) => {
+  const [path, anchor] = g.split('@');
+  const [t, fl] = path.split(':');
+  if (t === 'flota' || t !== tab) return '';
+  if (fl) return fl === curFilter(t) ? 'on' : '';
+  return anchor ? '' : 'on';
+};
+function kpis() {
+  const all = vehicles.flatMap((v) => v.stops);
+  const delivered = all.filter((s) => s.done);
+  const onTime = delivered.filter((s) => s.status === 'ENTREGADA');
+  const risky = all.filter((s) => s.status === 'PENDIENTE' && s.risk >= 0.65);
+  const moving = vehicles.filter((v) => ['EN_RUTA', 'EN_CLIENTE', 'DETENIDO'].includes(v.state));
+  const cold = vehicles.filter((v) => v.ty.cold && v.totalMin > 0);
+  const inRange = cold.reduce((s, v) => s + v.inRangeMin, 0) / Math.max(1, cold.reduce((s, v) => s + v.totalMin, 0));
+  const est = delivered.reduce((s, x) => s + x.est, 0), real = delivered.reduce((s, x) => s + (x.real || 0), 0);
+  const act = alerts.filter((a) => !a.ack && visibleAlert(a)).length;
+  const otif = (onTime.length + all.filter((s) => !s.done && s.risk < 0.5).length) / all.length;
+  return `<div class="tiles">
+    <div class="tile ${goOn('flota')}" data-go="flota" role="button" tabindex="0" title="Ver la flota" aria-label="Ver la flota"><span class="go">↗</span><div class="ic c-green">⌖</div><div><div class="k">Flota en tiempo real</div><div class="v">${moving.length}<small>de ${vehicles.length}</small></div><div class="d">${moving.filter((v) => v.car.own).length} propias · ${moving.filter((v) => !v.car.own).length} tercerizadas en calle</div></div></div>
+    <div class="tile ${goOn('entregas:done')}" data-go="entregas:done" role="button" tabindex="0" title="Ver entregas realizadas" aria-label="Ver entregas realizadas"><span class="go">↗</span><div class="ic c-cyan">✓</div><div><div class="k">Entregas realizadas</div><div class="v">${delivered.length}<small>de ${all.length}</small></div><div class="d">${delivered.length ? pct(onTime.length / delivered.length) + ' dentro de ventana y sin rechazo' : 'sin entregas todavía'}</div></div></div>
+    <div class="tile ${goOn('entregas:risk')}" data-go="entregas:risk" role="button" tabindex="0" title="Ver entregas en riesgo" aria-label="Ver entregas en riesgo"><span class="go">↗</span><div class="ic c-orange">◭</div><div><div class="k">En riesgo de retraso (ML)</div><div class="v">${risky.length}</div><div class="d">OTIF proyectado ${pct(otif)}</div></div></div>
+    <div class="tile ${goOn('frio')}" data-go="frio" role="button" tabindex="0" title="Ver cadena de frío" aria-label="Ver cadena de frío"><span class="go">↗</span><div class="ic c-blue">❄</div><div><div class="k">Cadena de frío en rango</div><div class="v">${cold.length ? pct(inRange, 1) : '—'}</div><div class="d">${cold.filter((v) => v.temp > v.ty.hi || v.temp < v.ty.lo).length} equipos fuera de rango ahora</div></div></div>
+    <div class="tile ${goOn('mant')}" data-go="mant" role="button" tabindex="0" title="Ver órdenes de mantenimiento" aria-label="Ver órdenes de mantenimiento"><span class="go">↗</span><div class="ic c-red">⚙</div><div><div class="k">Fallas → OT de mantenimiento</div><div class="v">${workOrders.length}</div><div class="d">${workOrders.filter((o) => o.status !== 'CERRADA').length} OT abiertas · ${vehicles.filter((x) => x.state === 'DETENIDO').length} unidades detenidas</div></div></div>
+    <div class="tile ${goOn('alertas')}" data-go="alertas" role="button" tabindex="0" title="Ver alertas del rol" aria-label="Ver alertas del rol"><span class="go">↗</span><div class="ic c-yellow">◆</div><div><div class="k">Alertas activas · rol</div><div class="v">${act}</div><div class="d">${esc(ROLE[role].label)}</div></div></div>
+    <div class="tile ${goOn('costos')}" data-go="costos" role="button" tabindex="0" title="Ver costo real por entrega" aria-label="Ver costo real por entrega"><span class="go">↗</span><div class="ic c-green">▮</div><div><div class="k">Costo real vs estimado</div><div class="v">${est ? (real >= est ? '+' : '') + pct(real / est - 1, 1) : '—'}</div><div class="d">${delivered.length ? `${usd(real)} real · ${usd(est)} estimado JDE` : 'se calcula al entregar'}</div></div></div>
+  </div>`;
+}
+function alertList(list, limit = 40) {
+  if (!list.length) return '<div class="empty">Sin alertas para este rol</div>';
+  return `<div class="alerts">${list.slice(0, limit).map((a) => `<div class="al ${a.ack ? '' : 'new'}">
+    <div class="h"><span>${sevBadge(a.sev)} <b>${esc(a.type)}</b></span><span class="sub">${hhmm(a.t)} · ${esc(a.veh)}</span></div>
+    <div class="m">${esc(a.msg)}</div>
+    <div class="f"><span class="to">Notificado a:</span>${a.roles.map((r) => `<span class="b ${r === role ? 'info' : ''}">${esc(ROLE[r].label)} · ${esc(ROLE[r].channel)}</span>`).join('')}
+      ${a.wo ? `<button class="go-btn" data-go="mant">Ver OT ${a.wo}</button>` : ''}
+      ${a.ack ? '<span class="sub" style="margin-left:auto">✓ reconocida</span>' : `<button class="ack" data-ack="${a.id}">Reconocer</button>`}</div></div>`).join('')}</div>`;
+}
+function vehicleDetail(v) {
+  const next = v.stops.find((s) => !s.done);
+  const real = v.stops.reduce((s, x) => s + (x.real || 0), 0);
+  return `<header><h2>${esc(v.id)} · ${esc(v.plate)}</h2>${stateBadge(v)}</header>
+    <div class="sub">${carrierBadge(v)} ${esc(v.ty.label)} · chofer ${esc(v.driver)} · embarque JDE <span class="mono">${v.shipment}</span></div>
+    <div class="kv">
+      <div><span>Velocidad</span><b>${num(v.speedKmh)} km/h</b></div>
+      <div><span>Km real / plan</span><b>${num(v.kmReal, 1)} / ${num(v.plannedKm, 1)}</b></div>
+      <div><span>${v.ty.cold ? 'Temp. caja' : 'Motor'}</span><b class="${v.ty.cold && (v.temp > v.ty.hi || v.temp < v.ty.lo) ? 'c-red' : ''}">${v.ty.cold ? num(v.temp, 1) + ' °C' : num(v.coolant, 0) + ' °C'}</b></div>
+    </div>
+    ${v.ty.cold ? `<div class="sub">Temperatura de la caja · rango ${v.ty.lo} a ${v.ty.hi} °C</div>${spark(v.tempHist.slice(-120).map((p) => p.v), { w: 330, h: 44, band: [v.ty.lo, v.ty.hi], color: v.temp > v.ty.hi ? 'var(--red)' : 'var(--cyan)' })}` : ''}
+    ${v.stopReason ? `<div class="note mt" style="border-color:rgba(255,93,93,.4)">■ ${esc(v.stopReason)} · reanuda ${hhmm(v.stopUntil)}</div>` : ''}
+    ${workOrders.filter((o) => o.veh === v.id).map((o) => `<div class="note mt" style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span>⚙ <b>OT ${o.id}</b> · ${esc(o.priority)} · ${esc(o.system)} · ${otStatus(o)}</span><button class="go-btn" data-go="mant">Ver OT</button></div>`).join('')}
+    <ul class="stops mt">${v.stops.map((s) => `<li>
+      <span class="dot" style="border-color:${s.status === 'PENDIENTE' ? (s.risk >= 0.65 ? 'var(--orange)' : 'var(--muted)') : s.status === 'EN_CLIENTE' ? 'var(--blue)' : s.status === 'RECHAZO_PARCIAL' ? 'var(--red)' : s.status === 'ENTREGADA_TARDE' ? 'var(--yellow)' : 'var(--green)'};${s.done ? 'background:currentColor' : ''}"></span>
+      <div><b>${esc(s.cust.name)}</b> <span class="sub">${esc(s.cust.city)} · pedido <span class="mono">${s.doco}</span></span>
+        <div class="sub">Ventana ${hhmm(s.open)}–${hhmm(s.close)} · ${s.done ? `entregado ${hhmm(s.done)}` : s.status === 'EN_CLIENTE' ? `en cliente desde ${hhmm(s.arr)}` : `ETA GPS ${hhmm(s.eta)} · <b style="color:var(--violet)">ETA ML ${hhmm(s.etaMl)}</b>`}</div>
+        ${!s.done && s.drivers && s.drivers.length && s.risk >= 0.35 ? `<div class="sub">Por qué: ${esc(s.drivers.join(' · '))}</div>` : ''}</div>
+      <div style="text-align:right">${s.done ? stopBadge(s) : riskBadge(s.risk)}<div class="sub">${s.real != null ? usd(s.real) + ' real' : usd(s.est) + ' est.'}</div></div></li>`).join('')}</ul>
+    <div class="spread sub mt" style="display:flex;justify-content:space-between"><span>Costo estimado JDE ${usd(v.routeEst)}</span><span>Real ${usd(real)} · proyectado ${usd(v.projCost)}</span></div>
+    ${next ? '' : '<div class="note mt">Ruta completada: costo real contabilizado en JDE.</div>'}`;
+}
+
+const VIEWS = {
+  torre() {
+    const list = alerts.filter(visibleAlert);
+    const v = VEH[selected];
+    const pend = (x) => x.stops.find((s) => !s.done);
+    if (!$('#mapsvg')) {
+      view.innerHTML = `${header('Tu ERP sabe qué hay que entregar. <em>¿Sabe qué pasó en la calle?</em>', 'Flota propia y tercerizada en tiempo real, integrada con los pedidos, clientes y costos de JD Edwards EnterpriseOne.')}
+        <div id="kpis"></div>
+        <div class="grid main-grid mt">
+          <div><div class="mapwrap" id="map"></div>
+            <div class="card mt"><header><h2>Flota</h2><span class="sub">clic en una fila o en el mapa para ver el detalle</span></header><div class="tw" id="vtable"></div></div></div>
+          <div class="grid" style="align-content:start">
+            <div class="card" id="vdetail"></div>
+            <div class="card"><header><h2>Alertas inteligentes</h2><span class="sub" id="alcount"></span></header><div id="alist"></div></div>
+          </div>
+        </div>`;
+      buildMap($('#map'));
+    }
+    $('#kpis').innerHTML = kpis();
+    $('#vdetail').innerHTML = vehicleDetail(v);
+    $('#alcount').textContent = `${list.filter((a) => !a.ack).length} sin reconocer`;
+    $('#alist').innerHTML = alertList(list, 25);
+    $('#vtable').innerHTML = `<table><thead><tr><th>Unidad</th><th>Transportista</th><th>Tipo</th><th>Estado</th><th>Próxima entrega</th><th class="r">ETA GPS</th><th class="r">ETA ML</th><th class="r">Riesgo</th><th class="r">Temp.</th><th class="r">Entregas</th></tr></thead><tbody>
+      ${vehicles.map((x) => { const n = pend(x); return `<tr class="click ${x.id === selected ? 'sel' : ''}" data-veh="${x.id}"><td><b>${x.id}</b></td><td>${carrierBadge(x)}</td><td class="sub">${esc(x.ty.label)}</td><td>${stateBadge(x)}</td>
+        <td>${n ? esc(n.cust.name) + `<div class="sub">ventana hasta ${hhmm(n.close)}</div>` : '<span class="sub">—</span>'}</td><td class="r">${n ? hhmm(n.eta) : '—'}</td><td class="r" style="color:var(--violet)">${n ? hhmm(n.etaMl) : '—'}</td>
+        <td class="r">${n && n.status === 'PENDIENTE' ? riskBadge(n.risk) : ''}</td><td class="r ${x.ty.cold && (x.temp > x.ty.hi || x.temp < x.ty.lo) ? 'c-red' : ''}">${x.ty.cold ? num(x.temp, 1) + ' °C' : '—'}</td>
+        <td class="r">${x.stops.filter((s) => s.done).length}/${x.stops.length}</td></tr>`; }).join('')}</tbody></table>`;
+    drawMap();
+  },
+
+  entregas() {
+    const rows = vehicles.flatMap((v) => v.stops.map((s) => ({ v, s }))).sort((a, b) => (a.s.done ? 1 : 0) - (b.s.done ? 1 : 0) || b.s.risk - a.s.risk);
+    const pend = rows.filter((r) => !r.s.done);
+    const okF = ({ s }) => entFilter === 'all' || (entFilter === 'pending' && !s.done) || (entFilter === 'risk' && s.status === 'PENDIENTE' && s.risk >= 0.65)
+      || (entFilter === 'done' && s.done) || (entFilter === 'issues' && ['ENTREGADA_TARDE', 'RECHAZO_PARCIAL'].includes(s.status))
+      || (entFilter === 'mant' && workOrders.some((o) => o.affected.includes(s.doco)));
+    const shown = rows.filter(okF);
+    view.innerHTML = `${header('Entregas del día', 'Pedidos de venta de JDE (F4211) asignados a embarques. El modelo de ML estima la llegada considerando tránsito habitual, transportista y permanencia en cliente.')}
+      ${kpis()}
+      <div class="card mt" id="entCard"><header><h2>Pedidos y entregas <span class="sub">${shown.length} de ${rows.length}</span></h2>
+        <div class="seg" id="entF">${ENT_FILTERS.map(([k, l]) => `<button data-ef="${k}" class="${entFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div></header>
+      <div class="tw" style="max-height:640px"><table><thead><tr><th>Pedido JDE</th><th>Cliente</th><th>Zona</th><th>Unidad</th><th>Ventana</th><th class="r">ETA GPS</th><th class="r">ETA ML</th><th class="r">Riesgo ML</th><th>Estado</th><th>Por qué</th><th class="r">Costo est.</th><th class="r">Costo real</th></tr></thead><tbody>
+      ${shown.length ? '' : '<tr><td colspan="12" class="empty">No hay entregas con este filtro en este momento</td></tr>'}
+      ${shown.map(({ v, s }) => `<tr class="click" data-veh="${v.id}"><td class="mono">${s.doco} SO</td><td><b>${esc(s.cust.name)}</b><div class="sub">${s.bultos} bultos · ${num(s.kg)} kg</div></td><td>${esc(s.cust.city)}<div class="sub">${s.cust.zone}</div></td>
+        <td><b>${v.id}</b><div class="sub">${esc(v.car.name)}</div></td><td class="num">${hhmm(s.open)}–${hhmm(s.close)}</td>
+        <td class="r">${s.done ? hhmm(s.arr) : hhmm(s.eta)}</td><td class="r" style="color:var(--violet)">${s.done ? '' : hhmm(s.etaMl)}</td><td class="r">${s.done ? '' : riskBadge(s.risk)}</td>
+        <td>${stopBadge(s)}</td><td class="sub" style="max-width:240px">${s.done ? esc(s.causes.join(' · ')) : esc((s.drivers || []).join(' · '))}</td>
+        <td class="r">${usd(s.est)}</td><td class="r">${s.real != null ? usd(s.real) : '—'}</td></tr>`).join('')}</tbody></table></div></div>`;
+  },
+
+  frio() {
+    const cold = vehicles.filter((v) => v.ty.cold).sort((a, b) => b.excursionMin - a.excursionMin || (b.temp - b.ty.set) - (a.temp - a.ty.set));
+    view.innerHTML = `${header('Cadena de frío bajo control', 'Temperatura de cada equipo refrigerado o congelado, con detección anticipada de excursiones y registro adjunto a cada entrega en JDE.')}
+      ${kpis()}
+      <div class="grid g3 mt">${cold.map((v) => { const out = v.temp > v.ty.hi || v.temp < v.ty.lo; const inR = v.totalMin ? v.inRangeMin / v.totalMin : 1; return `<div class="card">
+        <header><h2>${v.id} <span class="sub">${esc(v.car.name)}</span></h2>${out ? '<span class="b crit">▲ Fuera de rango</span>' : '<span class="b good">● En rango</span>'}</header>
+        <div class="kv"><div><span>Actual</span><b class="${out ? 'c-red' : ''}">${num(v.temp, 1)} °C</b></div><div><span>Rango</span><b>${v.ty.lo} a ${v.ty.hi} °C</b></div><div><span>Tiempo en rango</span><b>${pct(inR, 1)}</b></div></div>
+        ${tempChart(v)}
+        <div class="sub">${esc(v.ty.label)} · ${v.excursionMin > 0 ? `<span class="c-red">${num(v.excursionMin)} min fuera de rango</span>` : 'sin excursiones'} · ${v.stops.filter((s) => s.done).length}/${v.stops.length} entregas</div></div>`; }).join('')}</div>
+      <div class="note mt">El registro de temperatura de cada viaje queda adjunto al pedido en JDE (<span class="mono">TWR_AttachTempLog</span>). Una excursión prolongada antes de una entrega dispara la alerta a Calidad y, si el cliente rechaza, la devolución y reentrega se reflejan en el costo real.</div>`;
+  },
+
+  mant() {
+    const open = workOrders.filter((o) => o.status !== 'CERRADA');
+    const resp = workOrders.filter((o) => o.events.length > 3).map((o) => 15);
+    const affected = new Set(workOrders.flatMap((o) => o.affected));
+    view.innerHTML = `${header('Fallas de unidades → orden de mantenimiento en JDE', 'La telemetría detecta la falla, alerta a Mantenimiento y Tráfico y genera la OT en JD Edwards sin carga manual. El costo de la reparación se suma al costo real de la operación.')}
+      <div class="tiles">
+        <div ${T('mant:all', 'Ver todas las OTs')}><span class="go">↗</span><div class="ic c-red">⚙</div><div><div class="k">OTs generadas hoy</div><div class="v">${workOrders.length}</div><div class="d">automáticas desde telemetría</div></div></div>
+        <div ${T('mant:open', 'Ver las OTs abiertas')}><span class="go">↗</span><div class="ic c-orange">◷</div><div><div class="k">OTs abiertas</div><div class="v">${open.length}</div><div class="d">${vehicles.filter((x) => x.state === 'DETENIDO').length} unidades detenidas ahora</div></div></div>
+        <div ${T('jde:ot', 'Ver las llamadas a JDE de las OTs')}><span class="go">↗</span><div class="ic c-cyan">⏱</div><div><div class="k">Detección → OT en JDE</div><div class="v">&lt; 1<small>min</small></div><div class="d">${resp.length ? 'técnico en el lugar en ~15 min' : 'sin carga manual'}</div></div></div>
+        <div ${T('entregas:mant', 'Ver las entregas afectadas por fallas')}><span class="go">↗</span><div class="ic c-yellow">✓</div><div><div class="k">Entregas afectadas</div><div class="v">${affected.size}</div><div class="d">con ETA recalculado por el modelo</div></div></div>
+        <div ${T('mant:closed', 'Ver las OTs cerradas y su costo')}><span class="go">↗</span><div class="ic c-green">$</div><div><div class="k">Costo de reparaciones</div><div class="v">${usd(workOrders.reduce((a, o) => a + (o.cost || 0), 0))}</div><div class="d">contabilizado en JDE al cerrar</div></div></div>
+      </div>
+      <div class="card mt"><header><h2>Cómo funciona</h2><span class="sub">de la falla en la calle a la OT en el ERP</span></header>
+        <div class="steps">
+          <div><span class="n">1 · DETECCIÓN</span><b>Telemetría de la unidad</b>ECU por bus CAN (SAE J1939), TPMS y sensores: el modelo anticipa la falla por tendencia.</div>
+          <div><span class="n">2 · ALERTA POR ROL</span><b>Mantenimiento y Tráfico</b>Mantenimiento recibe la OT; Tráfico, la unidad detenida; Atención al cliente, las entregas afectadas.</div>
+          <div><span class="n">3 · OT EN JDE</span><b>TWR_CreateWorkOrder</b>OT correctiva en F4801 con prioridad, sistema, código de falla y repuestos sugeridos (F3111).</div>
+          <div><span class="n">4 · REPARACIÓN Y CIERRE</span><b>Auxilio y costo real</b>Seguimiento de estados y cierre con costo real (F0911) que impacta en el costo por entrega.</div>
+        </div></div>
+      <div class="grid mt" style="grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);align-items:start">
+        <div class="grid" style="align-content:start" id="otList">
+          <div class="spread" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2 style="margin:0;font-size:15px">Órdenes de mantenimiento <span class="sub">${otShown().length} de ${workOrders.length}</span></h2>${filterSeg('mant')}</div>
+          ${workOrders.length && !otShown().length ? '<div class="card empty">No hay OTs con este filtro en este momento</div>' : ''}
+          ${workOrders.length ? otShown().map((o) => `<div class="otcard ${o.status !== 'CERRADA' ? 'open' : ''}">
+            <header style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px"><h2 style="font-size:15px;margin:0">OT ${o.id} · ${esc(o.system)}</h2><span>${o.priority === 'P1' ? '<span class="b crit">▲ P1 crítica</span>' : '<span class="b warn">◆ P2 alta</span>'} ${otStatus(o)}</span></header>
+            <div class="kv">
+              <div><span>Unidad</span><b>${o.veh}</b> <span class="sub">${esc(o.v.plate)} · ${esc(o.v.car.name)}</span></div>
+              <div><span>Origen</span><b style="font-size:12.5px">${esc(o.origin)}</b></div>
+              <div><span>${o.status === 'CERRADA' ? 'Duración' : 'Abierta hace'}</span><b>${mins((o.closed || simT) - o.created)} min</b></div>
+            </div>
+            <div class="sub">${esc(o.dtc)} · técnico ${esc(o.tech)}</div>
+            <ul class="tl">${o.events.map((e) => `<li class="${e.jde ? 'jde' : ''}"><span class="ts">${hhmm(e.t)}</span>${e.text}</li>`).join('')}</ul>
+            <div class="grid g2" style="gap:10px;margin-top:6px">
+              <div><div class="sub" style="margin-bottom:4px">Repuestos sugeridos (F3111)</div>${o.parts.map(([p, c]) => `<div class="spread" style="display:flex;justify-content:space-between;font-size:12.5px"><span>${esc(p)}</span><span class="num">${usd(c)}</span></div>`).join('')}
+                <div class="sub" style="margin-top:4px">Mano de obra estimada ${num(o.laborH, 1)} h${o.cost != null ? ` · <b style="color:var(--ink)">costo real ${usd(o.cost)}</b>` : ''}</div></div>
+              <div><div class="sub" style="margin-bottom:4px">Entregas afectadas</div>${o.v.stops.filter((x) => o.affected.includes(x.doco)).map((x) => `<div style="display:flex;justify-content:space-between;gap:6px;font-size:12.5px"><span>${esc(x.cust.name)}</span>${x.done ? stopBadge(x) : riskBadge(x.risk)}</div>`).join('') || '<span class="sub">ninguna</span>'}</div>
+            </div>
+          </div>`).join('') : `<div class="card empty">Todavía no hubo fallas en la jornada. A las 08:56 la unidad P-05 tiene una falla de motor; también podés simular una ahora.
+            <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn primary" data-scn-run="fail">⚡ Simular falla de motor en P-05</button><button class="btn" data-scn-run="tire">⚡ Simular pinchadura en P-08</button></div></div>`}
+        </div>
+        <div class="card"><header><h2>Salud de la flota propia</h2><span class="sub">temperatura de motor · última hora</span></header>
+          <table><thead><tr><th>Unidad</th><th>Estado</th><th class="r">Motor</th><th>Tendencia</th><th>OT</th></tr></thead><tbody>
+          ${vehicles.filter((x) => x.car.own).map((x) => { const c = x.tempHist.slice(-60).map((p) => p.c); const hot = x.coolant > 96; const ot = workOrders.find((o) => o.veh === x.id);
+            return `<tr class="click" data-veh="${x.id}"><td><b>${x.id}</b><div class="sub">${esc(x.ty.label)}</div></td><td>${stateBadge(x)}</td><td class="r ${hot ? 'c-red' : ''}">${num(x.coolant, 0)} °C</td>
+              <td>${spark(c, { w: 90, h: 22, lo: 80, hi: 112, color: hot ? 'var(--red)' : 'var(--cyan)' })}</td><td>${ot ? `<span class="b ${ot.status === 'CERRADA' ? 'good' : 'crit'}">OT ${ot.id}</span>` : '<span class="sub">—</span>'}</td></tr>`; }).join('')}
+          </tbody></table>
+          <div class="note mt">Las unidades tercerizadas reportan la falla al transportista, que gestiona su propio mantenimiento; la torre recalcula las entregas y avisa al cliente. La OT completa de la flota propia se gestiona en el módulo de mantenimiento integrado con JDE.</div></div>
+      </div>`;
+  },
+
+  alertas() {
+    const list = alerts.filter(visibleAlert).filter((a) => FILT.alertas === 'all' || (FILT.alertas === 'pred' && (a.sev === 'pred' || a.type.includes('ML')))
+      || (FILT.alertas === 'high' && ['crit', 'alta'].includes(a.sev)) || (FILT.alertas === 'new' && !a.ack));
+    const byRole = ROLES.filter((r) => r.id !== 'all').map((r) => ({ r, n: alerts.filter((a) => a.roles.includes(r.id)).length, open: alerts.filter((a) => a.roles.includes(r.id) && !a.ack).length }));
+    const types = {};
+    list.forEach((a) => { types[a.type] = (types[a.type] || 0) + 1; });
+    view.innerHTML = `${header('Alertas inteligentes por rol', 'Cada responsable recibe solo lo que necesita, por su canal. Cambiá el rol arriba a la derecha.')}
+      <div class="grid g-2 mt" style="grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr)">
+        <div class="card" id="alCard"><header><h2>${esc(ROLE[role].label)} <span class="sub">${list.length} alertas · ${list.filter((a) => !a.ack).length} sin reconocer</span></h2>${filterSeg('alertas')}</header>${alertList(list, 120)}</div>
+        <div class="grid" style="align-content:start">
+          <div class="card"><header><h2>Destinatarios</h2><span class="sub">alertas del día</span></header>
+            <table><tbody>${byRole.map(({ r, n, open }) => `<tr class="click" data-role="${r.id}"><td><b>${esc(r.label)}</b><div class="sub">${esc(r.channel)}</div></td><td class="r">${n}</td><td class="r">${open ? `<span class="b or">${open} nuevas</span>` : ''}</td></tr>`).join('')}</tbody></table></div>
+          <div class="card"><header><h2>Tipos de alerta</h2></header>${Object.keys(types).length ? hbars(Object.entries(types).sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ label: k, value: n, color: 'var(--orange)' })), (x) => num(x)) : '<div class="empty">Sin alertas</div>'}</div>
+          <div class="card"><header><h2>Reglas</h2></header><table><tbody>
+            <tr><td>Retraso anticipado (ML)</td><td class="sub">riesgo ≥ 65% → Atención al cliente, Torre</td></tr>
+            <tr><td>Desvío de ruta</td><td class="sub">&gt; 0,5 km por más de 2 min → Tráfico, Torre</td></tr>
+            <tr><td>Parada no planificada</td><td class="sub">&gt; 10 min fuera de un cliente → Tráfico, Torre</td></tr>
+            <tr><td>Excursión de frío</td><td class="sub">anticipada por tendencia o fuera de rango → Calidad</td></tr>
+            <tr><td>Falla de unidad</td><td class="sub">DTC / sobretemperatura → Mantenimiento (OT en JDE)</td></tr>
+            <tr><td>Desvío de costo</td><td class="sub">real proyectado &gt; estimado +15% → Costos</td></tr>
+          </tbody></table></div>
+        </div></div>`;
+  },
+
+  costos() {
+    const rows = vehicles.flatMap((v) => v.stops.map((s) => ({ v, s })));
+    const done = rows.filter((r) => r.s.real != null);
+    const est = done.reduce((a, r) => a + r.s.est, 0), real = done.reduce((a, r) => a + r.s.real, 0);
+    const byCar = Object.entries(CARRIERS).map(([k, c]) => { const d = done.filter((r) => r.v.carrier === k); return { c, n: d.length, est: d.reduce((a, r) => a + r.s.est, 0), real: d.reduce((a, r) => a + r.s.real, 0) }; });
+    const causes = {};
+    done.forEach((r) => { const dlt = r.s.real - r.s.est; if (dlt > 0) (r.s.causes.length ? r.s.causes : ['Tiempo de servicio y consumo']).forEach((c) => { causes[c] = (causes[c] || 0) + dlt / (r.s.causes.length || 1); }); });
+    const mx = Math.max(1, ...byCar.map((b) => Math.max(b.est, b.real)));
+    const costRows = rows.filter(({ s }) => FILT.costos === 'all' || (FILT.costos === 'dev' && s.real != null && s.real > s.est * 1.1) || (FILT.costos === 'posted' && s.costState === 'Contabilizado'));
+    view.innerHTML = `${header('Costo real por entrega', 'De costear con estimados a costear con la realidad: km reales, tiempos, esperas, desvíos y rechazos, distribuidos por pedido y contabilizados en JDE.')}
+      <div class="tiles">
+        <div ${T('costos:all', 'Ver el detalle por pedido')}><span class="go">↗</span><div class="ic c-cyan">$</div><div><div class="k">Estimado JDE (entregas realizadas)</div><div class="v">${usd(est)}</div><div class="d">tarifas y costos estándar</div></div></div>
+        <div ${T('costos:posted', 'Ver los costos contabilizados en JDE')}><span class="go">↗</span><div class="ic c-green">▮</div><div><div class="k">Real de la operación</div><div class="v">${usd(real)}</div><div class="d">${done.length} entregas</div></div></div>
+        <div ${T('costos:dev', 'Ver los pedidos con desvío')}><span class="go">↗</span><div class="ic c-orange">Δ</div><div><div class="k">Desvío</div><div class="v">${est ? (real >= est ? '+' : '') + pct(real / est - 1, 1) : '—'}</div><div class="d">${usd(real - est)}</div></div></div>
+        <div ${T('costos@costTable', 'Ver el costo de cada entrega')}><span class="go">↗</span><div class="ic c-violet">⌀</div><div><div class="k">Costo real por entrega</div><div class="v">${done.length ? usd(real / done.length, 1) : '—'}</div><div class="d">promedio del día</div></div></div>
+      </div>
+      <div class="grid g2 mt">
+        <div class="card"><header><h2>Estimado vs. real por transportista</h2><span class="sub">entregas realizadas</span></header>
+          <div class="hbars">${byCar.map((b) => `<div style="margin-bottom:6px"><div class="sub" style="margin-bottom:3px">${esc(b.c.name)} · ${b.n} entregas ${b.est ? `· <b style="color:${b.real > b.est * 1.05 ? 'var(--orange)' : 'var(--green)'}">${(b.real >= b.est ? '+' : '') + pct(b.real / b.est - 1, 1)}</b>` : ''}</div>
+            <div class="hbar" style="grid-template-columns:70px 1fr auto"><span class="lab">Estimado</span><span class="track"><span class="fill" style="display:block;width:${(b.est / mx) * 100}%;background:var(--blue)"></span></span><span class="val">${usd(b.est)}</span></div>
+            <div class="hbar" style="grid-template-columns:70px 1fr auto"><span class="lab">Real</span><span class="track"><span class="fill" style="display:block;width:${(b.real / mx) * 100}%;background:var(--orange)"></span></span><span class="val">${usd(b.real)}</span></div></div>`).join('')}</div>
+          <div class="legend"><span><i style="background:var(--blue)"></i>Estimado (JDE)</span><span><i style="background:var(--orange)"></i>Real</span></div></div>
+        <div class="card"><header><h2>Qué explica el sobrecosto</h2><span class="sub">US$ por causa</span></header>
+          ${Object.keys(causes).length ? hbars(Object.entries(causes).sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ label: k, value: n, color: 'var(--orange)' })), (x) => usd(x)) : '<div class="empty">Se calcula a medida que se entregan los pedidos</div>'}
+          <div class="note mt">El costo real se envía a JDE por pedido (línea de flete en F4211 y asiento en F0911). Para tercerizados, además se genera el comprobante a pagar conciliado con la tarifa (F0411).</div></div>
+      </div>
+      <div class="card mt" id="costTable"><header><h2>Detalle por pedido <span class="sub">${costRows.length} de ${rows.length} · estimado → real parcial → contabilizado en JDE al cerrar el embarque</span></h2>${filterSeg('costos')}</header>
+        <div class="tw" style="max-height:520px"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Unidad</th><th class="r">Km plan</th><th class="r">Km real</th><th class="r">Estimado</th><th class="r">Real</th><th class="r">Desvío</th><th>Causas</th><th>Estado JDE</th></tr></thead><tbody>
+        ${costRows.length ? '' : '<tr><td colspan="10" class="empty">No hay pedidos con este filtro en este momento</td></tr>'}
+        ${costRows.map(({ v, s }) => `<tr class="click" data-veh="${v.id}"><td class="mono">${s.doco}</td><td>${esc(s.cust.name)}</td><td>${v.id} <span class="sub">${esc(v.car.name)}</span></td><td class="r">${num(s.legPlannedKm, 1)}</td><td class="r">${s.done ? num(s.legKm, 1) : '—'}</td>
+          <td class="r">${usd(s.est, 1)}</td><td class="r">${s.real != null ? usd(s.real, 1) : '—'}</td><td class="r">${s.real != null ? `<span class="b ${s.real > s.est * 1.1 ? 'or' : 'good'}">${(s.real >= s.est ? '+' : '') + pct(s.real / s.est - 1)}</span>` : ''}</td>
+          <td class="sub">${esc(s.causes.join(' · '))}</td><td>${s.costState === 'Contabilizado' ? '<span class="b good">✓ Contabilizado</span>' : s.costState === 'Real parcial' ? '<span class="b info">Real parcial</span>' : '<span class="b">Estimado</span>'}</td></tr>`).join('')}</tbody></table></div></div>`;
+  },
+
+  ml() {
+    const pend = vehicles.flatMap((v) => v.stops).filter((s) => !s.done);
+    const bins = [0, 0, 0, 0, 0];
+    pend.forEach((s) => { bins[Math.min(4, Math.floor(s.risk * 5))]++; });
+    const hours = Array.from({ length: 12 }, (_, i) => 7 + i);
+    const heatColor = (d) => { const t = Math.min(1, Math.max(0, d / 30)); return `rgb(${Math.round(34 + t * 221)},${Math.round(211 - t * 120)},${Math.round(139 - t * 100)})`; };
+    view.innerHTML = `${header('Machine Learning: patrones y anticipación', 'Modelos entrenados con el historial de entregas, telemetría y transportistas para anticipar retrasos, desvíos y fallas antes de que impacten en el negocio.')}
+      <div class="tiles">
+        <div ${T('ml@mlFeat', 'Ver qué variables usa el modelo')}><span class="go">↗</span><div class="ic c-violet">◭</div><div><div class="k">Modelo de retraso</div><div class="v">AUC ${num(HIST.auc, 2)}</div><div class="d">gradient boosting · ${num(HIST.n)} entregas históricas</div></div></div>
+        <div ${T('entregas:pending', 'Comparar ETA GPS vs ETA ML por entrega')}><span class="go">↗</span><div class="ic c-cyan">◎</div><div><div class="k">Error de ETA</div><div class="v">${num(HIST.maeMl)}<small>min</small></div><div class="d">vs ${num(HIST.maeGps)} min del ETA por GPS</div></div></div>
+        <div ${T('alertas:pred', 'Ver las alertas anticipadas')}><span class="go">↗</span><div class="ic c-orange">⚑</div><div><div class="k">Alertas anticipadas</div><div class="v">${alerts.filter((a) => a.type.includes('ML') || a.sev === 'pred').length}</div><div class="d">hoy, antes de que ocurra el problema</div></div></div>
+        <div ${T('ml@mlPat', 'Ver los patrones detectados')}><span class="go">↗</span><div class="ic c-green">✓</div><div><div class="k">Precisión de alertas</div><div class="v">${pct(HIST.precision)}</div><div class="d">recall ${pct(HIST.recall)} · validación histórica</div></div></div>
+      </div>
+      <div class="grid g2 mt">
+        <div class="card"><header><h2>Demora promedio por zona y hora</h2><span class="sub">minutos sobre lo planificado · histórico 60 días</span></header>
+          <div class="heat" style="grid-template-columns:70px repeat(${hours.length},1fr)"><div class="hh"></div>${hours.map((h) => `<div class="hh">${h}h</div>`).join('')}
+          ${['Norte', 'CABA', 'Oeste', 'Sur'].map((z) => `<div class="hl">${z}</div>${hours.map((h) => { const d = HIST.heat[z][h]; return `<div style="background:${heatColor(d)}" data-tip="<b>${z} · ${h}:00</b><div>${num(d, 1)} min de demora promedio</div>">${num(d)}</div>`; }).join('')}`).join('')}</div>
+          <div class="legend"><span><i style="background:${heatColor(0)}"></i>sin demora</span><span><i style="background:${heatColor(15)}"></i>15 min</span><span><i style="background:${heatColor(30)}"></i>30+ min</span></div></div>
+        <div class="card" id="mlFeat"><header><h2>Variables que más explican el retraso</h2><span class="sub">importancia en el modelo</span></header>
+          ${hbars(HIST.features.map(([l, v]) => ({ label: l, value: v, color: 'var(--violet)' })), (x) => pct(x))}</div>
+        <div class="card" id="mlPat"><header><h2>Patrones detectados</h2><span class="sub">automáticamente, sobre el historial</span></header>
+          <table><tbody>${HIST.patterns.map((p) => `<tr><td>${p.icon}</td><td>${esc(p.text)}</td><td class="r"><span class="b or">${esc(p.kpi)}</span></td></tr>`).join('')}</tbody></table></div>
+        <div class="card"><header><h2>Entregas a tiempo por transportista</h2><span class="sub">histórico 60 días</span></header>
+          ${hbars(HIST.carriers.map((c) => ({ label: c.name, value: c.onTime, color: c.onTime > 0.9 ? 'var(--green)' : c.onTime > 0.82 ? 'var(--yellow)' : 'var(--orange)' })), (x) => pct(x, 1))}
+          <h2 style="font-size:13.5px;margin:18px 0 8px">Riesgo de las entregas pendientes ahora</h2>
+          ${hbars(['0–20%', '20–40%', '40–60%', '60–80%', '80–100%'].map((l, i) => ({ label: l, value: bins[i], color: ['var(--green)', 'var(--green)', 'var(--yellow)', 'var(--orange)', 'var(--red)'][i] })), (x) => num(x) + (x === 1 ? ' entrega' : ' entregas'))}</div>
+      </div>
+      <div class="note mt"><b>Cómo se usa:</b> el ETA por GPS proyecta la velocidad actual; el modelo agrega lo aprendido (congestión por zona y hora, permanencia por cliente y desempeño de cada transportista) y estima la probabilidad de no cumplir la ventana. Los mismos datos alimentan la detección de desvíos de ruta y de fallas de las unidades. Métricas de la demo calculadas sobre un historial simulado.</div>`;
+  },
+
+  jde() {
+    const LOGF = { ot: /WorkOrder/, ent: /ConfirmDelivery|ShipmentStatus|AttachTempLog|GetShipments/, cost: /FreightCost|CarrierVoucher|FreightRates/ };
+    const logRows = FILT.jde === 'all' ? jdeLog : jdeLog.filter((l) => LOGF[FILT.jde].test(l.orch));
+    view.innerHTML = `${header('Integración con JD Edwards EnterpriseOne', 'Sin reemplazar los sistemas core ni customizar el ERP: la torre usa AIS Server y orquestaciones estándar.')}
+      <div class="grid g2">
+        <div class="card"><header><h2>Arquitectura</h2><span class="sub">de datos aislados a decisiones en tiempo real</span></header>
+          <svg viewBox="0 0 620 230" style="width:100%;height:auto" role="img" aria-label="Arquitectura de integración">
+            <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#b7c4dd"/></marker></defs>
+            <g font-family="system-ui" font-size="12" fill="#f2f6ff">
+              <rect x="5" y="20" width="150" height="190" rx="12" fill="rgba(7,18,38,.6)" stroke="rgba(120,170,255,.24)"/><text x="80" y="44" text-anchor="middle" font-weight="700">Fuentes en la calle</text>
+              <text x="80" y="72" text-anchor="middle" fill="#b7c4dd">GPS flota propia</text><text x="80" y="94" text-anchor="middle" fill="#b7c4dd">Plataformas de</text><text x="80" y="110" text-anchor="middle" fill="#b7c4dd">transportistas</text><text x="80" y="134" text-anchor="middle" fill="#b7c4dd">Sensores de frío</text><text x="80" y="156" text-anchor="middle" fill="#b7c4dd">ECU · J1939</text><text x="80" y="178" text-anchor="middle" fill="#b7c4dd">App del chofer</text>
+              <rect x="205" y="35" width="200" height="160" rx="12" fill="rgba(255,138,31,.10)" stroke="#ff8a1f"/><text x="305" y="62" text-anchor="middle" font-weight="800" fill="#ff8a1f">Torre de Control</text><text x="305" y="78" text-anchor="middle" fill="#ff8a1f" font-size="10.5" font-weight="700" letter-spacing="2">EISPLUS</text>
+              <text x="305" y="104" text-anchor="middle" fill="#b7c4dd">Integración de datos</text><text x="305" y="124" text-anchor="middle" fill="#b7c4dd">Modelos de ML</text><text x="305" y="144" text-anchor="middle" fill="#b7c4dd">Alertas por rol</text><text x="305" y="164" text-anchor="middle" fill="#b7c4dd">Costo real por entrega</text>
+              <rect x="455" y="20" width="160" height="190" rx="12" fill="rgba(34,211,139,.08)" stroke="#22d38b"/><text x="535" y="44" text-anchor="middle" font-weight="700" fill="#22d38b">JD Edwards E1</text><text x="535" y="60" text-anchor="middle" fill="#b7c4dd" font-size="10.5">AIS · Orchestrator</text>
+              <text x="535" y="86" text-anchor="middle" fill="#b7c4dd">Pedidos F4211</text><text x="535" y="106" text-anchor="middle" fill="#b7c4dd">Embarques y cargas</text><text x="535" y="126" text-anchor="middle" fill="#b7c4dd">Clientes F0101</text><text x="535" y="146" text-anchor="middle" fill="#b7c4dd">Fletes · F0911</text><text x="535" y="166" text-anchor="middle" fill="#b7c4dd">Transportistas F0411</text><text x="535" y="186" text-anchor="middle" fill="#b7c4dd">Mantenimiento F4801</text>
+            </g>
+            <g stroke="#b7c4dd" stroke-width="1.5" fill="none"><path d="M155,115H203" marker-end="url(#ar)"/><path d="M405,95H453" marker-end="url(#ar)"/><path d="M455,140H407" marker-end="url(#ar)"/></g>
+            <g font-family="system-ui" font-size="10" fill="#7d8db0"><text x="430" y="88" text-anchor="middle">entregas · costos</text><text x="430" y="155" text-anchor="middle">pedidos · tarifas</text></g>
+          </svg>
+          <div class="note mt"><b>Sin customizar el ERP.</b> No se modifican objetos estándar de JDE: la torre lee y escribe solo a través de orquestaciones publicadas en AIS Server, con un usuario de servicio de permisos mínimos.</div></div>
+        <div class="card"><header><h2>Cómo arrancamos: piloto acotado</h2><span class="sub">medir sobre la operación real y después escalar</span></header>
+          <div class="flow" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+            <div><span class="when">Semanas 1–2</span><b>Conectar</b><span class="sub">Orquestaciones de pedidos, embarques y costos. GPS de 10–20 unidades propias y 1 transportista.</span></div>
+            <div><span class="when">Semanas 3–6</span><b>Medir</b><span class="sub">Línea base de OTIF, costo real vs estimado, excursiones de frío y alertas útiles por rol.</span></div>
+            <div><span class="when">Semanas 7–10</span><b>Anticipar</b><span class="sub">Entrenar los modelos con la operación propia y activar alertas predictivas.</span></div>
+            <div><span class="when">Después</span><b>Escalar</b><span class="sub">Sumar transportistas, centros de distribución y reglas; integrar el costo real al cierre contable.</span></div>
+          </div></div>
+      </div>
+      <div class="grid g2 mt">
+        <div class="card"><header><h2>Orquestaciones</h2><span class="sub">referencia: validar contra la instalación</span></header>
+          <table><thead><tr><th>Orquestación</th><th>Sentido</th><th>Objetos JDE</th></tr></thead><tbody>
+            ${[['TWR_GetShipments', 'JDE → Torre', 'Pedidos F4211 · embarques y cargas'], ['TWR_GetFreightRates', 'JDE → Torre', 'Tarifas de flete y costos estándar'], ['TWR_UpdateShipmentStatus', 'Torre → JDE', 'Estado del embarque'], ['TWR_ConfirmDelivery', 'Torre → JDE', 'Confirmación de entrega (P4205)'], ['TWR_AttachTempLog', 'Torre → JDE', 'Adjunto de temperatura al pedido'], ['TWR_PostFreightCost', 'Torre → JDE', 'Costo real: línea de flete F4211 · F0911'], ['TWR_CreateCarrierVoucher', 'Torre → JDE', 'Comprobante del transportista F0411'], ['TWR_CreateWorkOrder', 'Torre → JDE', 'OT de mantenimiento F4801'], ['TWR_UpdateWorkOrderStatus', 'Torre → JDE', 'Estado de la OT F4801'], ['TWR_CompleteWorkOrder', 'Torre → JDE', 'Cierre y costo real de la OT F4801 · F0911']]
+              .map(([o, d, j]) => `<tr><td class="mono">${o}</td><td><span class="b ${d.startsWith('JDE') ? 'info' : 'good'}">${d}</span></td><td class="sub">${j}</td></tr>`).join('')}</tbody></table></div>
+        <div class="card" id="jdeLog"><header><h2>Registro en vivo <span class="sub">${logRows.length} de ${jdeLog.length} llamadas AIS</span></h2>${filterSeg('jde')}</header>
+          <div class="tw" style="max-height:420px"><table><thead><tr><th>Hora</th><th>Orquestación</th><th>Detalle</th><th class="r">ms</th></tr></thead><tbody>
+          ${logRows.length ? '' : '<tr><td colspan="4" class="empty">Sin llamadas de este tipo todavía</td></tr>'}
+          ${logRows.slice(0, 80).map((l) => `<tr><td class="num">${hhmm(l.t)}</td><td><span class="b ${l.dir === 'IN' ? 'info' : 'good'}">${l.dir === 'IN' ? '←' : '→'}</span> <span class="mono">${esc(l.orch)}</span><div class="sub">${esc(l.obj)}</div></td><td class="sub">${esc(l.detail)}</td><td class="r">${l.ms}</td></tr>`).join('')}</tbody></table></div></div>
+      </div>`;
+  },
+};
+
+// ====================================================================== historial sintético para el modelo
+const HIST = (() => {
+  const r = mulberry32(77);
+  const zones = ['Norte', 'CABA', 'Oeste', 'Sur'];
+  const cars = Object.entries(CARRIERS);
+  const heat = Object.fromEntries(zones.map((z) => [z, {}]));
+  const cnt = Object.fromEntries(zones.map((z) => [z, {}]));
+  const car = Object.fromEntries(cars.map(([k]) => [k, { n: 0, ok: 0 }]));
+  let n = 0, errGps = 0, errMl = 0;
+  for (let d = 0; d < 60; d++) for (let k = 0; k < 75; k++) {
+    const z = zones[Math.floor(r() * 4)], h = 7 + Math.floor(r() * 12);
+    const [ck, c] = cars[Math.floor(Math.pow(r(), 0.7) * cars.length)];
+    const g = (r() + r() + r() - 1.5) * 9;
+    const delay = -4 + 26 * cong(z, h + 0.5) * (2 - c.speed) + (c.dwell - 1) * 22 + g;
+    heat[z][h] = (heat[z][h] || 0) + delay; cnt[z][h] = (cnt[z][h] || 0) + 1;
+    car[ck].n++; if (delay < 15) car[ck].ok++;
+    errGps += Math.abs(delay); errMl += Math.abs(g) * 0.9; n++;
+  }
+  zones.forEach((z) => { for (let h = 7; h < 19; h++) heat[z][h] = cnt[z][h] ? heat[z][h] / cnt[z][h] : 0; });
+  const cells = zones.flatMap((z) => Object.entries(heat[z]).map(([h, v]) => ({ z, h: Number(h), v }))).sort((a, b) => b.v - a.v);
+  const carriers = cars.map(([k, c]) => ({ name: c.name, onTime: car[k].ok / car[k].n })).sort((a, b) => b.onTime - a.onTime);
+  const worst = carriers[carriers.length - 1];
+  return {
+    n, heat, carriers, auc: 0.87, precision: 0.81, recall: 0.76, maeGps: errGps / n, maeMl: errMl / n,
+    features: [['Zona × franja horaria', 0.31], ['Transportista', 0.22], ['Permanencia histórica en el cliente', 0.17], ['Distancia y paradas restantes', 0.14], ['Eventos de tránsito', 0.09], ['Estado de la unidad', 0.07]],
+    patterns: [
+      { icon: '🕘', text: `${cells[0].z} entre ${cells[0].h} y ${cells[0].h + 1} h concentra la mayor demora`, kpi: `+${num(cells[0].v)} min` },
+      { icon: '🕙', text: `${cells[1].z} a las ${cells[1].h} h es la segunda franja más crítica`, kpi: `+${num(cells[1].v)} min` },
+      { icon: '🚚', text: `${worst.name} tiene el menor cumplimiento de ventana, por mayor permanencia en cliente`, kpi: pct(worst.onTime) + ' a tiempo' },
+      { icon: '❄', text: 'Las excursiones de frío se anticipan por la pendiente de temperatura 20–30 min antes', kpi: '25 min antes' },
+      { icon: '⚙', text: 'Sobretemperatura de motor previa a fallas en ruta: alerta temprana a Mantenimiento', kpi: 'OT automática' },
+    ],
+  };
+})();
+
+// ====================================================================== ciclo principal
+function render() {
+  const fn = VIEWS[tab];
+  if (tab !== 'torre' && $('#mapsvg')) view.innerHTML = '';
+  const sx = window.scrollX, sy = window.scrollY;
+  const scrolls = [...view.querySelectorAll('.tw, .alerts')].map((e) => e.scrollTop);
+  fn();
+  [...view.querySelectorAll('.tw, .alerts')].forEach((e, i) => { if (scrolls[i]) e.scrollTop = scrolls[i]; });
+  if (tab !== 'torre') window.scrollTo(sx, sy);
+}
+let lastReal = performance.now();
+let acc = 0;
+setInterval(() => {
+  const now = performance.now();
+  const dtReal = Math.min(1, (now - lastReal) / 1000);
+  lastReal = now;
+  if (speed > 0) {
+    let dt = dtReal * speed;
+    while (dt > 0) { const d = Math.min(dt, 30); step(d); dt -= d; }
+    for (const a of AUTO) if (simT >= a.t && !autoDone.has(a.id)) { autoDone.add(a.id); SCENARIOS.find((s) => s.id === a.id).run(); }
+  }
+  forecast();
+  $('#clock').innerHTML = `${hhmm(simT)}<small>${speed ? 'HORA OPERACIÓN' : 'EN PAUSA'}</small>`;
+  if (tab === 'torre' && $('#mapsvg')) drawMap();
+  acc += dtReal;
+  if (acc >= 1) { acc = 0; if (!document.querySelector('.view details[open]')) render(); }
+}, 250);
+
+// ====================================================================== interacción
+$('#role').innerHTML = ROLES.map((r) => `<option value="${r.id}">${r.id === 'all' ? '👁 ' : ''}${esc(r.label)}</option>`).join('');
+$('#role').onchange = (e) => { role = e.target.value; view.innerHTML = ''; render(); };
+$('#tabs').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; setTab(b.dataset.tab); };
+document.querySelector('.brand').onclick = (e) => { e.preventDefault(); setTab('torre'); };
+function setTab(t) { tab = t; try { history.replaceState(null, '', location.search + '#' + t); } catch { /* file:// */ } document.querySelectorAll('#tabs button').forEach((x) => x.classList.toggle('on', x.dataset.tab === t)); view.innerHTML = ''; render(); window.scrollTo(0, 0); }
+$('#speed').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; speed = Number(b.dataset.s); document.querySelectorAll('#speed button').forEach((x) => x.classList.toggle('on', x === b)); };
+$('#scnBtn').onclick = (e) => { e.stopPropagation(); drawScn(); $('#scnMenu').classList.toggle('open'); };
+document.addEventListener('click', () => $('#scnMenu').classList.remove('open'));
+function drawScn() {
+  $('#scnDD').innerHTML = SCENARIOS.map((s) => `<button data-scn="${s.id}">${esc(s.label)}<small>${esc(s.sub)}</small></button>`).join('');
+  $('#scnDD').querySelectorAll('button').forEach((b) => b.onclick = () => { SCENARIOS.find((s) => s.id === b.dataset.scn).run(); selected = { cold: 'T-17', dev: 'P-03', stop: 'T-12', fail: 'P-05', tire: 'P-08' }[b.dataset.scn] || selected; if (['fail', 'tire'].includes(b.dataset.scn) && tab === 'mant') render(); else render(); });
+}
+const DEFAULT_ANCHOR = { entregas: 'entCard', mant: 'otList', jde: 'jdeLog', costos: 'costTable', alertas: 'alCard' };
+function goTo(dest) {
+  const [path, anchorId] = dest.split('@');
+  const [t, fl] = path.split(':');
+  if (t === 'entregas') entFilter = fl || 'all';
+  else if (FILT[t] !== undefined) FILT[t] = fl || 'all';
+  const target = t === 'flota' ? 'torre' : t;
+  if (target !== tab) setTab(target); else render();
+  const id = anchorId || (t === 'flota' ? null : fl ? DEFAULT_ANCHOR[t] : null);
+  const anchor = t === 'flota' ? $('#vtable')?.closest('.card') : id ? document.getElementById(id) : null;
+  if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+view.addEventListener('keydown', (e) => {
+  const g = e.target.closest?.('[data-go]');
+  if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); goTo(g.dataset.go); }
+});
+view.addEventListener('click', (e) => {
+  const sr = e.target.closest('[data-scn-run]');
+  if (sr) { SCENARIOS.find((x) => x.id === sr.dataset.scnRun).run(); if (sr.dataset.scnRun === 'fail') { const v = VEH['P-05']; if (!v.done.failStop && v.state !== 'FINALIZADO' && v.state !== 'CARGANDO') { v.done.failStop = true; createWorkOrder(v, { system: 'Motor y refrigeración', dtc: 'DTC J1939 SPN 110 FMI 0 · temperatura de refrigerante alta', symptom: `temperatura de motor ${num(Math.max(v.coolant, 105), 0)} °C`, priority: 'P1', stopMin: 40, health: 0.82, parts: [['Termostato', 60], ['Refrigerante 20 L', 100], ['Correa poly-V', 55]], laborH: 1.5 }); } } render(); return; }
+  const go = e.target.closest('[data-go]');
+  if (go) { goTo(go.dataset.go); return; }
+  const fb = e.target.closest('[data-filt]');
+  if (fb) { const [t, k] = fb.dataset.filt.split(':'); FILT[t] = k; render(); return; }
+  const ef = e.target.closest('[data-ef]');
+  if (ef) { entFilter = ef.dataset.ef; render(); return; }
+  const ack = e.target.closest('[data-ack]');
+  if (ack) { const a = alerts.find((x) => x.id === Number(ack.dataset.ack)); if (a) a.ack = true; render(); return; }
+  const rr = e.target.closest('[data-role]');
+  if (rr) { role = rr.dataset.role; $('#role').value = role; view.innerHTML = ''; render(); return; }
+  const tr = e.target.closest('[data-veh]');
+  if (tr) { selected = tr.dataset.veh; if (tab !== 'torre') setTab('torre'); else render(); }
+});
+document.addEventListener('mousemove', (e) => {
+  const t = e.target.closest?.('[data-tip]'), el = $('#tt');
+  if (t && t.getAttribute('data-tip')) {
+    el.innerHTML = t.getAttribute('data-tip'); el.classList.add('on');
+    const w = el.offsetWidth, h = el.offsetHeight;
+    el.style.left = Math.min(e.clientX + 14, innerWidth - w - 8) + 'px';
+    el.style.top = (e.clientY + 14 + h > innerHeight ? e.clientY - h - 10 : e.clientY + 14) + 'px';
+  } else el.classList.remove('on');
+});
+
+// Arranque: avanzar unos minutos para que la flota ya esté despachando.
+// ?hora=HHMM permite empezar la demo más avanzada en la jornada (p. ej. ?hora=1000)
+function fastForward(target) {
+  while (simT < target) {
+    step(30);
+    for (const a of AUTO) if (simT >= a.t && !autoDone.has(a.id)) { autoDone.add(a.id); SCENARIOS.find((s) => s.id === a.id).run(); }
+    forecast();
+  }
+  $('#toasts').innerHTML = '';
+}
+const hhmmToSec = (h) => (h && /^\d{3,4}$/.test(h) ? Math.floor(Number(h) / 100) * 3600 + (Number(h) % 100) * 60 : null);
+const qs = new URLSearchParams(location.search);
+fastForward(hhmmToSec(qs.get('hora')) ?? DAY0 + 20 * 60);
+
+// Guía de bienvenida: pausa la simulación hasta elegir cómo empezar
+let resumeSpeed = speed;
+function openIntro() { resumeSpeed = speed || 20; speed = 0; $('#intro').classList.remove('hidden'); $('#intro .btn.primary').focus(); }
+function closeIntro(start) {
+  const t = hhmmToSec(start);
+  if (t) { fastForward(t); view.innerHTML = ''; }
+  $('#intro').classList.add('hidden');
+  speed = resumeSpeed;
+  document.querySelectorAll('#speed button').forEach((x) => x.classList.toggle('on', Number(x.dataset.s) === speed));
+  render();
+}
+$('#intro').addEventListener('click', (e) => { const b = e.target.closest('[data-start]'); if (b) closeIntro(b.dataset.start); else if (e.target.id === 'intro') closeIntro(''); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#intro').classList.contains('hidden')) closeIntro(''); });
+$('#helpBtn').onclick = openIntro;
+if (qs.get('guia') === '0' || qs.get('hora') || location.hash) $('#intro').classList.add('hidden'); else openIntro();
+forecast();
+if (VIEWS[location.hash.slice(1)]) setTab(location.hash.slice(1)); else render();
+</script>
+</body>
+</html>

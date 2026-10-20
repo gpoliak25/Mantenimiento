@@ -18,6 +18,11 @@ if (process.env.JDE_MOCK !== '0') require('../jde-mock/server').start();
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
+  // Torre de Control Logística (demo autónoma de un solo archivo)
+  if (url.pathname === '/torre' || url.pathname === '/torre.html') {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
+    return fs.createReadStream(path.join(__dirname, '..', 'entregables', 'Torre-Control-Logistica.html')).pipe(res);
+  }
   if (url.pathname.startsWith('/api/')) {
     if (await api.handle(req, res, url)) return;
     res.writeHead(404, { 'Content-Type': 'application/json' });
